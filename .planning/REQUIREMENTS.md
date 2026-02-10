@@ -99,57 +99,57 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| DATA-05 | TBD | Pending |
-| METR-01 | TBD | Pending |
-| METR-02 | TBD | Pending |
-| METR-03 | TBD | Pending |
-| METR-04 | TBD | Pending |
-| METR-05 | TBD | Pending |
-| METR-06 | TBD | Pending |
-| METR-07 | TBD | Pending |
-| XERT-01 | TBD | Pending |
-| XERT-02 | TBD | Pending |
-| XERT-03 | TBD | Pending |
-| XERT-04 | TBD | Pending |
-| XERT-05 | TBD | Pending |
-| XERT-06 | TBD | Pending |
-| XERT-07 | TBD | Pending |
-| THRS-01 | TBD | Pending |
-| THRS-02 | TBD | Pending |
-| THRS-03 | TBD | Pending |
-| THRS-04 | TBD | Pending |
-| THRS-05 | TBD | Pending |
-| THRS-06 | TBD | Pending |
-| THRS-07 | TBD | Pending |
-| THRS-08 | TBD | Pending |
-| ACTV-01 | TBD | Pending |
-| ACTV-02 | TBD | Pending |
-| ACTV-03 | TBD | Pending |
-| ACTV-04 | TBD | Pending |
-| ACTV-05 | TBD | Pending |
-| ACTV-06 | TBD | Pending |
-| DASH-01 | TBD | Pending |
-| DASH-02 | TBD | Pending |
-| DASH-03 | TBD | Pending |
-| DASH-04 | TBD | Pending |
-| DASH-05 | TBD | Pending |
-| PLAN-01 | TBD | Pending |
-| PLAN-02 | TBD | Pending |
-| PLAN-03 | TBD | Pending |
-| INFR-01 | TBD | Pending |
-| INFR-02 | TBD | Pending |
-| INFR-03 | TBD | Pending |
-| INFR-04 | TBD | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 3 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Pending |
+| METR-01 | Phase 2 | Pending |
+| METR-02 | Phase 2 | Pending |
+| METR-03 | Phase 2 | Pending |
+| METR-04 | Phase 2 | Pending |
+| METR-05 | Phase 2 | Pending |
+| METR-06 | Phase 2 | Pending |
+| METR-07 | Phase 2 | Pending |
+| XERT-01 | Phase 9 | Pending |
+| XERT-02 | Phase 9 | Pending |
+| XERT-03 | Phase 9 | Pending |
+| XERT-04 | Phase 10 | Pending |
+| XERT-05 | Phase 10 | Pending |
+| XERT-06 | Phase 10 | Pending |
+| XERT-07 | Phase 10 | Pending |
+| THRS-01 | Phase 4 | Pending |
+| THRS-02 | Phase 4 | Pending |
+| THRS-03 | Phase 4 | Pending |
+| THRS-04 | Phase 4 | Pending |
+| THRS-05 | Phase 4 | Pending |
+| THRS-06 | Phase 4 | Pending |
+| THRS-07 | Phase 4 | Pending |
+| THRS-08 | Phase 4 | Pending |
+| ACTV-01 | Phase 6 | Pending |
+| ACTV-02 | Phase 6 | Pending |
+| ACTV-03 | Phase 7 | Pending |
+| ACTV-04 | Phase 7 | Pending |
+| ACTV-05 | Phase 7 | Pending |
+| ACTV-06 | Phase 7 | Pending |
+| DASH-01 | Phase 8 | Pending |
+| DASH-02 | Phase 8 | Pending |
+| DASH-03 | Phase 8 | Pending |
+| DASH-04 | Phase 8 | Pending |
+| DASH-05 | Phase 8 | Pending |
+| PLAN-01 | Phase 11 | Pending |
+| PLAN-02 | Phase 11 | Pending |
+| PLAN-03 | Phase 11 | Pending |
+| INFR-01 | Phase 5 | Pending |
+| INFR-02 | Phase 1 | Pending |
+| INFR-03 | Phase 1 | Pending |
+| INFR-04 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 42 total
-- Mapped to phases: 0
-- Unmapped: 42
+- Mapped to phases: 42
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after initial definition*
+*Last updated: 2026-02-10 after roadmap creation*
