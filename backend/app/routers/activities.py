@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, List
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
@@ -25,10 +25,11 @@ from app.schemas.activity import (
     ActivityResponse,
     ActivityUploadResponse,
     ManualActivityCreate,
+    MultiUploadResponse,
 )
 from app.schemas.csv_import import CsvImportResponse
 from app.services.csv_import_service import parse_and_import_csv
-from app.services.import_service import DuplicateFileError, handle_upload
+from app.services.import_service import DuplicateFileError, handle_multi_upload, handle_upload
 from app.services.storage_service import delete_fit_file
 
 logger = structlog.get_logger(__name__)
@@ -143,6 +144,55 @@ async def upload_fit(
         )
 
     return ActivityUploadResponse(activity_id=activity.id, task_id=task_id)
+
+
+@router.post(
+    "/upload",
+    response_model=MultiUploadResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Upload multiple FIT or ZIP files for processing",
+)
+async def upload_multi(
+    request: Request,
+    files: List[UploadFile],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+) -> MultiUploadResponse:
+    """Accept multiple FIT or ZIP file uploads.
+
+    For each file:
+    - .fit files are validated and processed individually.
+    - .zip files are extracted and each contained .fit file is processed.
+    - Other file types return a per-file error.
+
+    Returns a summary with per-file results.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Rate limit check (per request, not per file)
+    if not _check_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded. Maximum 20 uploads per hour.",
+        )
+
+    if not files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No files provided.",
+        )
+
+    results = await handle_multi_upload(files, db, user_id=current_user.id)
+
+    successful = sum(1 for r in results if r.error is None)
+    failed = sum(1 for r in results if r.error is not None)
+
+    return MultiUploadResponse(
+        uploads=results,
+        total_files=len(results),
+        successful=successful,
+        failed=failed,
+    )
 
 
 @router.get(

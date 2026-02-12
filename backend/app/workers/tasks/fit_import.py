@@ -52,6 +52,11 @@ def process_fit_upload(self: BaseTask, activity_id: int, file_path: str) -> dict
         )
         session.commit()
 
+        self.update_state(
+            state="PROGRESS",
+            meta={"current": 5, "total": 100, "stage": "Parsing FIT file"},
+        )
+
         # 2. Parse FIT file
         settings = get_settings()
         full_path = Path(settings.FIT_STORAGE_PATH) / file_path
@@ -98,12 +103,16 @@ def process_fit_upload(self: BaseTask, activity_id: int, file_path: str) -> dict
             activity_updates["device_name"] = activity_data.device_name
 
         # 4. Bulk insert stream records (batched)
-        stream_count = _insert_streams(session, activity_id, result.streams, log)
+        stream_count = _insert_streams(session, activity_id, result.streams, log, task=self)
 
         # 5. Insert lap records
-        lap_count = _insert_laps(session, activity_id, result.laps, log)
+        lap_count = _insert_laps(session, activity_id, result.laps, log, task=self)
 
         # 6. Update activity with parsed metadata
+        self.update_state(
+            state="PROGRESS",
+            meta={"current": 90, "total": 100, "stage": "Updating activity metadata"},
+        )
         session.execute(
             update(Activity)
             .where(Activity.id == activity_id)
@@ -152,10 +161,18 @@ def _insert_streams(
     activity_id: int,
     streams: list[StreamRecord],
     log: Any,
+    task: Any = None,
 ) -> int:
     """Bulk-insert stream records in batches of STREAM_BATCH_SIZE.
 
     GPS coordinates are stored as PostGIS GEOGRAPHY(POINT) using ST_GeogFromText.
+
+    Args:
+        session: Sync SQLAlchemy session.
+        activity_id: Database ID of the Activity record.
+        streams: List of StreamRecord objects to insert.
+        log: Structured logger.
+        task: Optional Celery task instance for progress reporting.
 
     Returns:
         Number of stream records inserted.
@@ -164,9 +181,12 @@ def _insert_streams(
         return 0
 
     total = len(streams)
+    total_batches = (total + STREAM_BATCH_SIZE - 1) // STREAM_BATCH_SIZE
     log.info("inserting_streams", total=total, batch_size=STREAM_BATCH_SIZE)
 
-    for batch_start in range(0, total, STREAM_BATCH_SIZE):
+    for batch_num, batch_start in enumerate(
+        range(0, total, STREAM_BATCH_SIZE), start=1
+    ):
         batch = streams[batch_start : batch_start + STREAM_BATCH_SIZE]
         rows = []
         for rec in batch:
@@ -197,6 +217,18 @@ def _insert_streams(
         session.execute(insert(ActivityStream).values(rows))
         session.flush()
 
+        if task is not None:
+            # Scale progress from 10 to 70 based on batches completed
+            batch_progress = 10 + int(60 * batch_num / total_batches)
+            task.update_state(
+                state="PROGRESS",
+                meta={
+                    "current": batch_progress,
+                    "total": 100,
+                    "stage": f"Inserting stream data {batch_num}/{total_batches}",
+                },
+            )
+
         log.debug(
             "stream_batch_inserted",
             batch_start=batch_start,
@@ -212,14 +244,28 @@ def _insert_laps(
     activity_id: int,
     laps: list[LapRecord],
     log: Any,
+    task: Any = None,
 ) -> int:
     """Insert lap records into activity_laps.
+
+    Args:
+        session: Sync SQLAlchemy session.
+        activity_id: Database ID of the Activity record.
+        laps: List of LapRecord objects to insert.
+        log: Structured logger.
+        task: Optional Celery task instance for progress reporting.
 
     Returns:
         Number of lap records inserted.
     """
     if not laps:
         return 0
+
+    if task is not None:
+        task.update_state(
+            state="PROGRESS",
+            meta={"current": 75, "total": 100, "stage": "Analyzing laps"},
+        )
 
     rows = []
     for lap in laps:

@@ -336,10 +336,30 @@ export interface TotalsResponse {
   end_date: string;
 }
 
+// ── Multi-Upload ─────────────────────────────────────────────────────
+
+export interface FileUploadResult {
+  filename: string;
+  activity_id: number | null;
+  task_id: string | null;
+  error: string | null;
+}
+
+export interface MultiUploadResponse {
+  uploads: FileUploadResult[];
+  total_files: number;
+  successful: number;
+  failed: number;
+}
+
 // ── Task ──────────────────────────────────────────────────────────────
 
 export interface TaskStatus {
   task_id: string;
   status: string;
+  progress: number;
+  stage: string | null;
+  detail: string | null;
+  error: string | null;
   result: unknown;
 }

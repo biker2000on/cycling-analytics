@@ -12,7 +12,7 @@ def get_task_status(task_id: str) -> dict[str, object]:
         task_id: Celery task ID
 
     Returns:
-        Dict with: task_id, status, progress, result, error
+        Dict with: task_id, status, progress, result, error, stage, detail
     """
     result = AsyncResult(task_id, app=celery_app)
 
@@ -21,11 +21,18 @@ def get_task_status(task_id: str) -> dict[str, object]:
     progress = 0
     task_result = None
     error = None
+    stage = None
+    detail = None
 
     if status == "PENDING":
         progress = 0
     elif status == "STARTED":
-        progress = 50
+        progress = 0
+    elif status == "PROGRESS":
+        meta = result.info if isinstance(result.info, dict) else {}
+        progress = meta.get("current", 0)
+        stage = meta.get("stage", None)
+        detail = meta.get("detail", None)
     elif status == "SUCCESS":
         progress = 100
         task_result = result.result
@@ -39,4 +46,6 @@ def get_task_status(task_id: str) -> dict[str, object]:
         "progress": progress,
         "result": task_result,
         "error": error,
+        "stage": stage,
+        "detail": detail,
     }

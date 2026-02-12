@@ -136,7 +136,7 @@ def sync_garmin_activities(self: BaseTask, user_id: int) -> dict[str, Any]:
         skipped = 0
         errors = 0
 
-        for garmin_act in garmin_activities:
+        for i, garmin_act in enumerate(garmin_activities):
             garmin_id = str(garmin_act.get("activityId", ""))
             act_name = garmin_act.get("activityName", "Garmin Activity")
 
@@ -220,6 +220,15 @@ def sync_garmin_activities(self: BaseTask, user_id: int) -> dict[str, Any]:
                     error=str(exc),
                 )
                 errors += 1
+
+            self.update_state(
+                state="PROGRESS",
+                meta={
+                    "current": int((i + 1) * 100 / len(garmin_activities)),
+                    "total": 100,
+                    "stage": f"Syncing activity {i + 1}/{len(garmin_activities)}",
+                },
+            )
 
         # Update last_sync_at
         session.execute(

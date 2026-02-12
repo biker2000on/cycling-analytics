@@ -88,3 +88,21 @@ class ManualActivityCreate(BaseModel):
     avg_cadence: int | None = None
     calories: int | None = None
     notes: str | None = None
+
+
+class FileUploadResult(BaseModel):
+    """Result for a single file within a multi-upload."""
+
+    filename: str
+    activity_id: int | None = None
+    task_id: str | None = None
+    error: str | None = None
+
+
+class MultiUploadResponse(BaseModel):
+    """Response for multi-file upload endpoint."""
+
+    uploads: list[FileUploadResult]
+    total_files: int
+    successful: int
+    failed: int

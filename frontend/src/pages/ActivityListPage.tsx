@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useActivityStore } from '../stores/activityStore.ts';
 import ActivityTable from '../components/activities/ActivityTable.tsx';
-import UploadButton from '../components/activities/UploadButton.tsx';
+import UploadZone from '../components/activities/UploadZone.tsx';
 import Pagination from '../components/common/Pagination.tsx';
 import './ActivityListPage.css';
 
@@ -32,8 +32,9 @@ export default function ActivityListPage() {
     <div className="activity-list-page">
       <div className="page-header">
         <h1 className="page-title">Activities</h1>
-        <UploadButton onUploadComplete={fetchActivities} />
       </div>
+
+      <UploadZone onUploadComplete={fetchActivities} />
 
       {error && <div className="alert alert-error">{error}</div>}
 

@@ -1,0 +1,157 @@
+.upload-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  text-align: center;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+  cursor: pointer;
+  margin-bottom: var(--space-lg);
+}
+
+.upload-zone:hover {
+  border-color: var(--color-primary);
+}
+
+.upload-zone--dragging {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.upload-zone--uploading {
+  cursor: default;
+}
+
+.upload-zone__prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-text-secondary);
+}
+
+.upload-zone__icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.upload-zone__text {
+  font-size: 0.875rem;
+}
+
+.upload-zone__browse {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.upload-zone__browse:hover {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+/* File list */
+
+.upload-zone__file-list {
+  margin-top: var(--space-md);
+  text-align: left;
+}
+
+.upload-zone__file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+}
+
+.upload-zone__file-item:last-child {
+  border-bottom: none;
+}
+
+.upload-zone__file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.upload-zone__file-status {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.upload-zone__file-status--waiting {
+  color: var(--color-text-secondary);
+}
+
+.upload-zone__file-status--uploading {
+  color: var(--color-primary);
+}
+
+.upload-zone__file-status--processing {
+  color: var(--color-warning);
+}
+
+.upload-zone__file-status--done {
+  color: var(--color-success);
+}
+
+.upload-zone__file-status--error {
+  color: var(--color-danger);
+}
+
+/* Progress bar */
+
+.upload-zone__progress-wrapper {
+  flex: 0 0 120px;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.upload-zone__progress-bar {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width var(--transition-fast);
+}
+
+.upload-zone__progress-bar--done {
+  background: var(--color-success);
+}
+
+.upload-zone__progress-bar--error {
+  background: var(--color-danger);
+}
+
+/* Summary / error banner */
+
+.upload-zone__summary {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.upload-zone__error {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+}

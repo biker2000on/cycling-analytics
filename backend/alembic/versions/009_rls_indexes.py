@@ -19,25 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Composite indexes for data isolation query performance
-    op.create_index(
-        "ix_activities_user_date",
-        "activities",
-        ["user_id", sa.text("activity_date DESC")],
+    # Use IF NOT EXISTS to handle partial re-runs gracefully
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_activities_user_date "
+        "ON activities (user_id, activity_date DESC)"
     )
-    op.create_index(
-        "ix_daily_fitness_user_date_method",
-        "daily_fitness",
-        ["user_id", "date", "threshold_method"],
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_daily_fitness_user_date_method "
+        "ON daily_fitness (user_id, date, threshold_method)"
     )
-    op.create_index(
-        "ix_thresholds_user_method_date",
-        "thresholds",
-        ["user_id", "method", sa.text("effective_date DESC")],
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_thresholds_user_method_date "
+        "ON thresholds (user_id, method, effective_date DESC)"
     )
-    op.create_index(
-        "ix_health_metrics_user_date_type",
-        "health_metrics",
-        ["user_id", "date", "metric_type"],
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_health_metrics_user_date_type "
+        "ON health_metrics (user_id, date, metric_type)"
     )
 
     # Add user profile fields for Phase 5

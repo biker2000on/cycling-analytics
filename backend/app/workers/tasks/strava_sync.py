@@ -310,6 +310,16 @@ def sync_strava_activities(self: BaseTask, user_id: int) -> dict[str, Any]:
                 else:
                     errors += 1
 
+                total_processed = synced + skipped + errors
+                self.update_state(
+                    state="PROGRESS",
+                    meta={
+                        "current": min(int(total_processed * 100 / max(total_processed, 1)), 99),
+                        "total": 100,
+                        "stage": f"Syncing activity {total_processed} (page {page})",
+                    },
+                )
+
             if len(activities) < 100:
                 break
             page += 1
@@ -544,6 +554,16 @@ def strava_historical_backfill(self: BaseTask, user_id: int) -> dict[str, Any]:
                 skipped += 1
             else:
                 errors += 1
+
+            total_processed = synced + skipped + errors
+            self.update_state(
+                state="PROGRESS",
+                meta={
+                    "current": int(total_processed * 100 / max(len(all_activities), 1)),
+                    "total": 100,
+                    "stage": f"Backfilling activity {total_processed}/{len(all_activities)}",
+                },
+            )
 
             # Commit in batches of 10
             if (synced + skipped + errors) % 10 == 0:
