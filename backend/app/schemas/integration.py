@@ -24,3 +24,29 @@ class IntegrationStatusResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Strava schemas
+# ---------------------------------------------------------------------------
+
+
+class StravaAuthUrl(BaseModel):
+    """Response containing the Strava OAuth2 authorization URL."""
+
+    url: str
+
+
+class StravaCallbackResponse(BaseModel):
+    """Response after successful Strava OAuth2 callback."""
+
+    connected: bool
+    athlete_id: str
+
+
+class StravaStatus(BaseModel):
+    """Strava integration connection status."""
+
+    connected: bool
+    athlete_id: str | None = None
+    last_sync: datetime | None = None

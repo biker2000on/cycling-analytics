@@ -1,21 +1,33 @@
 """Integration API endpoints — Garmin Connect, Strava, etc."""
 
+from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.dependencies import get_db
 from app.models.integration import Integration, IntegrationProvider, IntegrationStatus
-from app.schemas.integration import GarminConnectRequest, IntegrationStatusResponse
+from app.schemas.integration import (
+    GarminConnectRequest,
+    IntegrationStatusResponse,
+    StravaAuthUrl,
+    StravaCallbackResponse,
+    StravaStatus,
+)
 from app.services.garmin_service import (
     GarminAuthError,
     GarminService,
     GarminSyncError,
     encrypt_credentials,
+)
+from app.services.strava_service import (
+    StravaAuthError,
+    StravaService,
+    encrypt_token,
 )
 from app.workers.celery_app import celery_app
 
@@ -201,3 +213,230 @@ async def disconnect_garmin(
     integration.error_message = None
 
     logger.info("garmin_integration_disconnected", integration_id=integration.id)
+
+
+# ---------------------------------------------------------------------------
+# Strava helpers
+# ---------------------------------------------------------------------------
+
+
+async def _get_strava_integration(
+    db: AsyncSession,
+    user_id: int = DEFAULT_USER_ID,
+) -> Integration | None:
+    """Fetch the Strava integration for a user, or None."""
+    stmt = select(Integration).where(
+        Integration.user_id == user_id,
+        Integration.provider == IntegrationProvider.strava,
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+# ---------------------------------------------------------------------------
+# Strava endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/strava/authorize",
+    response_model=StravaAuthUrl,
+    summary="Get Strava OAuth2 authorization URL",
+)
+async def strava_authorize() -> StravaAuthUrl:
+    """Return the Strava OAuth2 authorization URL for the user to visit."""
+    settings = get_settings()
+    svc = StravaService()
+    try:
+        url = svc.build_auth_url(settings.STRAVA_REDIRECT_URI)
+    finally:
+        svc.close()
+    return StravaAuthUrl(url=url)
+
+
+@router.get(
+    "/strava/callback",
+    response_model=StravaCallbackResponse,
+    summary="Strava OAuth2 callback",
+)
+async def strava_callback(
+    code: Annotated[str, Query(description="Authorization code from Strava")],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StravaCallbackResponse:
+    """Exchange Strava authorization code for tokens and store them."""
+    settings = get_settings()
+
+    svc = StravaService()
+    try:
+        token_data = svc.exchange_code(code, settings.STRAVA_REDIRECT_URI)
+    except StravaAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Strava authentication failed: {exc}",
+        )
+    finally:
+        svc.close()
+
+    access_token = token_data["access_token"]
+    refresh_token = token_data["refresh_token"]
+    expires_at = datetime.fromtimestamp(token_data["expires_at"], tz=UTC)
+    athlete = token_data.get("athlete", {})
+    athlete_id = str(athlete.get("id", ""))
+
+    # Encrypt tokens
+    access_encrypted = encrypt_token(access_token, settings.SECRET_KEY)
+    refresh_encrypted = encrypt_token(refresh_token, settings.SECRET_KEY)
+
+    # Upsert integration
+    integration = await _get_strava_integration(db)
+
+    if integration is not None:
+        integration.access_token_encrypted = access_encrypted
+        integration.refresh_token_encrypted = refresh_encrypted
+        integration.token_expires_at = expires_at
+        integration.athlete_id = athlete_id
+        integration.status = IntegrationStatus.active
+        integration.sync_enabled = True
+        integration.error_message = None
+        logger.info("strava_integration_updated", integration_id=integration.id)
+    else:
+        integration = Integration(
+            user_id=DEFAULT_USER_ID,
+            provider=IntegrationProvider.strava,
+            access_token_encrypted=access_encrypted,
+            refresh_token_encrypted=refresh_encrypted,
+            token_expires_at=expires_at,
+            athlete_id=athlete_id,
+            sync_enabled=True,
+            status=IntegrationStatus.active,
+        )
+        db.add(integration)
+        logger.info("strava_integration_created", athlete_id=athlete_id)
+
+    await db.flush()
+
+    return StravaCallbackResponse(connected=True, athlete_id=athlete_id)
+
+
+@router.get(
+    "/strava/status",
+    response_model=StravaStatus,
+    summary="Get Strava integration status",
+)
+async def strava_status(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StravaStatus:
+    """Return current Strava integration connection status."""
+    integration = await _get_strava_integration(db)
+
+    if integration is None:
+        return StravaStatus(connected=False)
+
+    return StravaStatus(
+        connected=integration.status == IntegrationStatus.active,
+        athlete_id=integration.athlete_id,
+        last_sync=integration.last_sync_at,
+    )
+
+
+@router.delete(
+    "/strava/disconnect",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Disconnect Strava account",
+)
+async def strava_disconnect(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> None:
+    """Clear Strava tokens and disable sync."""
+    integration = await _get_strava_integration(db)
+
+    if integration is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Strava integration found.",
+        )
+
+    integration.access_token_encrypted = None
+    integration.refresh_token_encrypted = None
+    integration.token_expires_at = None
+    integration.athlete_id = None
+    integration.credentials_encrypted = None
+    integration.sync_enabled = False
+    integration.status = IntegrationStatus.disconnected
+    integration.error_message = None
+
+    logger.info("strava_integration_disconnected", integration_id=integration.id)
+
+
+@router.post(
+    "/strava/sync",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Trigger manual Strava sync",
+)
+async def trigger_strava_sync(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    """Queue a manual Strava activity sync."""
+    integration = await _get_strava_integration(db)
+
+    if integration is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Strava integration found. Connect your account first.",
+        )
+
+    if integration.status == IntegrationStatus.disconnected:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Strava integration is disconnected. Reconnect your account.",
+        )
+
+    task = celery_app.send_task(
+        "app.workers.tasks.strava_sync.sync_strava_activities",
+        args=[DEFAULT_USER_ID],
+        queue="low_priority",
+    )
+
+    logger.info("strava_sync_triggered", task_id=task.id)
+
+    return {
+        "task_id": task.id,
+        "message": "Strava sync queued successfully",
+    }
+
+
+@router.post(
+    "/strava/backfill",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Trigger Strava historical backfill",
+)
+async def trigger_strava_backfill(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    """Queue a full historical backfill of all Strava activities."""
+    integration = await _get_strava_integration(db)
+
+    if integration is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Strava integration found. Connect your account first.",
+        )
+
+    if integration.status == IntegrationStatus.disconnected:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Strava integration is disconnected. Reconnect your account.",
+        )
+
+    task = celery_app.send_task(
+        "app.workers.tasks.strava_sync.strava_historical_backfill",
+        args=[DEFAULT_USER_ID],
+        queue="low_priority",
+    )
+
+    logger.info("strava_backfill_triggered", task_id=task.id)
+
+    return {
+        "task_id": task.id,
+        "message": "Strava historical backfill queued successfully",
+    }

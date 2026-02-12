@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     DEBUG: bool = True
 
+    # Strava OAuth2
+    STRAVA_CLIENT_ID: str = ""
+    STRAVA_CLIENT_SECRET: str = ""
+    STRAVA_REDIRECT_URI: str = "http://localhost:8000/integrations/strava/callback"
+    STRAVA_VERIFY_TOKEN: str = "cycling-analytics-verify"
+
     model_config = {
         "env_file": ".env.local",
         "env_file_encoding": "utf-8",
