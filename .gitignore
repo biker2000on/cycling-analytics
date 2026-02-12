@@ -64,3 +64,5 @@ backups/
 # ─── Project internals ───────────────────────────────────────────────────────
 .prompts/
 .playwright/
+.claude/
+nul
