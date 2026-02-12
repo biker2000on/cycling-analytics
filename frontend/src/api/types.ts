@@ -177,6 +177,7 @@ export interface UserSettings {
   weight_kg: number | null;
   date_of_birth: string | null;
   unit_system: string;
+  theme: string;
 }
 
 export interface FtpResponse {

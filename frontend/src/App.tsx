@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore.ts';
 import { UnitProvider } from './contexts/UnitContext.tsx';
+import { ThemeProvider } from './contexts/ThemeContext.tsx';
 import Layout from './components/Layout.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import LoginPage from './pages/LoginPage.tsx';
@@ -24,8 +25,9 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <UnitProvider>
-        <Routes>
+      <ThemeProvider>
+        <UnitProvider>
+          <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -51,7 +53,8 @@ export default function App() {
           {/* Default redirect */}
           <Route path="*" element={<Navigate to="/activities" replace />} />
         </Routes>
-      </UnitProvider>
+        </UnitProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

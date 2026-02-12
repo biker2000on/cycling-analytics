@@ -59,6 +59,7 @@ def _make_settings(**overrides: object) -> SimpleNamespace:
         "weight_kg": Decimal("75.0"),
         "date_of_birth": None,
         "unit_system": "metric",
+        "theme": "light",
         "hr_zones": None,
         "created_at": datetime(2026, 2, 12, 10, 0, 0, tzinfo=UTC),
         "updated_at": datetime(2026, 2, 12, 10, 0, 0, tzinfo=UTC),
@@ -335,3 +336,81 @@ class TestUpdateSettings:
 
         assert response.status_code == 400
         assert "Invalid unit system" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_get_settings_includes_theme(self, client: AsyncClient) -> None:
+        """GET /settings returns theme field with default light."""
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.get("/settings")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["theme"] == "light"
+
+    @pytest.mark.asyncio
+    async def test_put_theme_dark(self, client: AsyncClient) -> None:
+        """PUT /settings with theme=dark persists the value."""
+        existing = _make_settings()
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.flush = AsyncMock()
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.put(
+            "/settings",
+            json={"theme": "dark"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["theme"] == "dark"
+
+    @pytest.mark.asyncio
+    async def test_put_theme_system(self, client: AsyncClient) -> None:
+        """PUT /settings with theme=system persists the value."""
+        existing = _make_settings()
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.flush = AsyncMock()
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.put(
+            "/settings",
+            json={"theme": "system"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["theme"] == "system"
+
+    @pytest.mark.asyncio
+    async def test_put_invalid_theme_returns_400(self, client: AsyncClient) -> None:
+        """PUT /settings with invalid theme returns 400."""
+        mock_db = AsyncMock()
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.put(
+            "/settings",
+            json={"theme": "rainbow"},
+        )
+
+        assert response.status_code == 400
+        assert "Invalid theme" in response.json()["detail"]

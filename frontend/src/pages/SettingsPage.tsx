@@ -4,6 +4,7 @@ import client from '../api/client.ts';
 import type { UserSettings } from '../api/types.ts';
 import { useUnits } from '../hooks/useUnits.ts';
 import type { UnitSystem } from '../contexts/UnitContext.tsx';
+import { useTheme } from '../hooks/useTheme.ts';
 import GarminConnect from '../components/settings/GarminConnect.tsx';
 import StravaConnect from '../components/settings/StravaConnect.tsx';
 
@@ -14,6 +15,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const { unitSystem, setUnitSystem } = useUnits();
+  const { themeMode, setThemeMode } = useTheme();
 
   useEffect(() => {
     client
@@ -127,6 +129,35 @@ export default function SettingsPage() {
               />
               Imperial (mi, ft, lbs)
             </label>
+          </div>
+
+          <hr style={{ margin: 'var(--space-lg) 0', borderColor: 'var(--color-border)' }} />
+
+          <h2 style={{ fontSize: '1.125rem', marginBottom: 'var(--space-md)' }}>
+            Appearance
+          </h2>
+          <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+            {(['light', 'dark', 'system'] as const).map((mode) => (
+              <label
+                key={mode}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-xs)',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="theme"
+                  value={mode}
+                  checked={themeMode === mode}
+                  onChange={() => setThemeMode(mode)}
+                />
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </label>
+            ))}
           </div>
 
           <hr style={{ margin: 'var(--space-lg) 0', borderColor: 'var(--color-border)' }} />

@@ -43,6 +43,7 @@ class UserSettingsResponse(BaseModel):
     unit_system: str = Field(
         "metric", description="Unit system preference (metric or imperial)"
     )
+    theme: str = Field("light", description="Theme preference (light, dark, or system)")
 
     model_config = {"from_attributes": True}
 
@@ -64,4 +65,7 @@ class UserSettingsUpdate(BaseModel):
     )
     unit_system: str | None = Field(
         None, description="Unit system preference (metric or imperial)"
+    )
+    theme: str | None = Field(
+        None, description="Theme preference (light, dark, or system)"
     )

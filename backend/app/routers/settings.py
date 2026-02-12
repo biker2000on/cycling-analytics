@@ -28,6 +28,9 @@ VALID_THRESHOLD_METHODS = {"manual", "pct_20min", "pct_8min", "xert_model"}
 # Valid unit systems
 VALID_UNIT_SYSTEMS = {"metric", "imperial"}
 
+# Valid themes
+VALID_THEMES = {"light", "dark", "system"}
+
 
 @router.get(
     "",
@@ -53,6 +56,7 @@ async def get_settings(
             weight_kg=None,
             date_of_birth=None,
             unit_system="metric",
+            theme="light",
         )
 
     return UserSettingsResponse.model_validate(settings)
@@ -92,6 +96,16 @@ async def update_settings(
             ),
         )
 
+    # Validate theme if provided
+    if data.theme is not None and data.theme not in VALID_THEMES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid theme: '{data.theme}'. "
+                f"Valid: {', '.join(sorted(VALID_THEMES))}"
+            ),
+        )
+
     stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalar_one_or_none()
@@ -103,6 +117,7 @@ async def update_settings(
             preferred_threshold_method="manual",
             calendar_start_day=1,
             unit_system="metric",
+            theme="light",
         )
         db.add(settings)
 
@@ -117,6 +132,8 @@ async def update_settings(
         settings.date_of_birth = data.date_of_birth
     if data.unit_system is not None:
         settings.unit_system = data.unit_system
+    if data.theme is not None:
+        settings.theme = data.theme
 
     await db.flush()
 

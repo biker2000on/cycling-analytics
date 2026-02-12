@@ -44,6 +44,9 @@ class UserSettings(Base):
     unit_system: Mapped[str] = mapped_column(
         String(20), server_default="metric", nullable=False
     )
+    theme: Mapped[str] = mapped_column(
+        String(20), server_default="light", nullable=False
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
