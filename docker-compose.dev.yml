@@ -1,0 +1,46 @@
+# Development Docker Compose — Local DB + Redis only
+# Python/FastAPI runs locally via uv for fast iteration
+version: '3.8'
+
+services:
+  db:
+    image: timescale/timescaledb-ha:pg17
+    container_name: cycling-analytics-db-dev
+    environment:
+      POSTGRES_DB: cycling_analytics
+      POSTGRES_USER: cycling_user
+      POSTGRES_PASSWORD: cycling_pass
+      # Enable PostGIS and TimescaleDB extensions automatically
+      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=timescaledb"
+    ports:
+      # IMPORTANT: Port 5432 is taken by fitnotes-db, so we use 5433
+      - "5433:5432"
+    volumes:
+      - pgdata_dev:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cycling_user -d cycling_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cycling-analytics-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+volumes:
+  pgdata_dev:
+    name: cycling_analytics_pgdata_dev
+  redis_data_dev:
+    name: cycling_analytics_redis_dev

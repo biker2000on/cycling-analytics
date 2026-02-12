@@ -1,0 +1,108 @@
+# Full Standalone Docker Compose — Includes Database
+# Use this for testing or deployments without external database
+version: '3.8'
+
+services:
+  db:
+    image: timescale/timescaledb-ha:pg17
+    container_name: cycling-analytics-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cycling_analytics}
+      POSTGRES_USER: ${DB_USER:-cycling_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-cycling_pass}
+      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=timescaledb"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cycling_user} -d ${DB_NAME:-cycling_analytics}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cycling-analytics-api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-cycling_user}:${DB_PASS:-cycling_pass}@db:5432/${DB_NAME:-cycling_analytics}
+      SYNC_DATABASE_URL: postgresql+psycopg2://${DB_USER:-cycling_user}:${DB_PASS:-cycling_pass}@db:5432/${DB_NAME:-cycling_analytics}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_DB: ${REDIS_CACHE_DB:-2}
+      FIT_STORAGE_PATH: /data/fit_files
+      APP_NAME: ${APP_NAME:-Cycling Analytics}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG:-false}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - fit_storage:/data/fit_files
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cycling-analytics-worker
+    command: celery -A app.workers.celery_app worker -Q high_priority,low_priority -c 4 --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-cycling_user}:${DB_PASS:-cycling_pass}@db:5432/${DB_NAME:-cycling_analytics}
+      SYNC_DATABASE_URL: postgresql+psycopg2://${DB_USER:-cycling_user}:${DB_PASS:-cycling_pass}@db:5432/${DB_NAME:-cycling_analytics}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_DB: ${REDIS_CACHE_DB:-2}
+      FIT_STORAGE_PATH: /data/fit_files
+      APP_NAME: ${APP_NAME:-Cycling Analytics}
+      SECRET_KEY: ${SECRET_KEY}
+    volumes:
+      - fit_storage:/data/fit_files
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cycling-analytics-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: cycling-analytics-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    name: cycling_analytics_pgdata
+  fit_storage:
+    name: cycling_analytics_fit_files
+  redis_data:
+    name: cycling_analytics_redis

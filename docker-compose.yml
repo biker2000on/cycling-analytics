@@ -1,0 +1,84 @@
+# Production Docker Compose — External NAS Database
+# Database runs on NAS (exposed via DB_HOST env var), app services run in containers
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cycling-analytics-api
+    environment:
+      # Database connection via environment variables
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SYNC_DATABASE_URL: postgresql+psycopg2://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_DB: ${REDIS_CACHE_DB:-2}
+      FIT_STORAGE_PATH: /data/fit_files
+      APP_NAME: ${APP_NAME:-Cycling Analytics}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG:-false}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - fit_storage:/data/fit_files
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cycling-analytics-worker
+    command: celery -A app.workers.celery_app worker -Q high_priority,low_priority -c 4 --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SYNC_DATABASE_URL: postgresql+psycopg2://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_DB: ${REDIS_CACHE_DB:-2}
+      FIT_STORAGE_PATH: /data/fit_files
+      APP_NAME: ${APP_NAME:-Cycling Analytics}
+      SECRET_KEY: ${SECRET_KEY}
+    volumes:
+      - fit_storage:/data/fit_files
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cycling-analytics-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: cycling-analytics-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  fit_storage:
+    name: cycling_analytics_fit_files
+  redis_data:
+    name: cycling_analytics_redis
