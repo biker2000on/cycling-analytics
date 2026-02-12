@@ -13,13 +13,13 @@ This roadmap delivers a self-hosted cycling analytics platform from data foundat
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Data Foundation** - Core infrastructure with TimescaleDB, FIT import, precision storage
-- [ ] **Phase 2: Coggan Metrics Engine** - TSS, NP, CTL/ATL/TSB, power zones
-- [ ] **Phase 3: Strava Integration** - OAuth2, webhooks, activity sync
-- [ ] **Phase 4: Threshold Management** - Multi-method FTP estimation with instant view switching
-- [ ] **Phase 5: Multi-User Infrastructure** - Authentication, profiles, data isolation
-- [ ] **Phase 6: Frontend Foundation** - React SPA, activity list/detail
-- [ ] **Phase 7: Activity Detail Views** - Power analysis, HR analysis, route maps, zone shading
-- [ ] **Phase 8: Dashboard & Charts** - Fitness tracker, critical power, calendar, totals
+- [x] **Phase 2: Coggan Metrics Engine** - TSS, NP, CTL/ATL/TSB, power zones
+- [x] **Phase 3: Strava Integration** - OAuth2, webhooks, activity sync
+- [x] **Phase 4: Threshold Management** - Multi-method FTP estimation with instant view switching
+- [x] **Phase 5: Multi-User Infrastructure** - Authentication, profiles, data isolation
+- [x] **Phase 6: Frontend Foundation** - React SPA, activity list/detail
+- [x] **Phase 7: Activity Detail Views** - Power analysis, HR analysis, route maps, zone shading
+- [x] **Phase 8: Dashboard & Charts** - Fitness tracker, critical power, calendar, totals
 - [ ] **Phase 9: Xert Algorithm Core** - XSS Low/High/Peak strain calculations
 - [ ] **Phase 10: Xert Advanced Features** - Dynamic threshold model, metabolic calculations, validation
 - [ ] **Phase 11: Season Planning** - Block periodization, goal-based CTL progression
@@ -198,13 +198,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 10/10 | Complete | 2026-02-12 |
-| 2. Coggan Metrics Engine | 0/TBD | Not started | - |
-| 3. Strava Integration | 0/TBD | Not started | - |
-| 4. Threshold Management | 0/TBD | Not started | - |
-| 5. Multi-User Infrastructure | 0/TBD | Not started | - |
-| 6. Frontend Foundation | 0/TBD | Not started | - |
-| 7. Activity Detail Views | 0/TBD | Not started | - |
-| 8. Dashboard & Charts | 0/TBD | Not started | - |
+| 2. Coggan Metrics Engine | 5/5 | Complete | 2026-02-12 |
+| 3. Strava Integration | 4/4 | Complete | 2026-02-12 |
+| 4. Threshold Management | 5/5 | Complete | 2026-02-12 |
+| 5. Multi-User Infrastructure | 3/3 | Complete | 2026-02-12 |
+| 6. Frontend Foundation | 5/5 | Complete | 2026-02-12 |
+| 7. Activity Detail Views | 4/4 | Complete | 2026-02-12 |
+| 8. Dashboard & Charts | 5/5 | Complete | 2026-02-12 |
 | 9. Xert Algorithm Core | 0/TBD | Not started | - |
 | 10. Xert Advanced Features | 0/TBD | Not started | - |
 | 11. Season Planning | 0/TBD | Not started | - |
