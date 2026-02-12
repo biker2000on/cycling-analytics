@@ -1,0 +1,66 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# ─── Virtual environments ────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.python-version
+
+# ─── uv ──────────────────────────────────────────────────────────────────────
+# uv.lock is committed (reproducible builds); .venv is not
+.venv/
+
+# ─── Testing / Coverage ─────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Environment / Secrets ───────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Data / FIT files ────────────────────────────────────────────────────────
+data/
+*.fit
+*.FIT
+
+# ─── Node (frontend, if added later) ────────────────────────────────────────
+node_modules/
+.next/
+.nuxt/
+
+# ─── Docker / Podman ─────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ─── Backups ─────────────────────────────────────────────────────────────────
+backups/
+*.tar.gz
+*.sql.gz
+
+# ─── Project internals ───────────────────────────────────────────────────────
+.prompts/
+.playwright/
