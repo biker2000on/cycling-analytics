@@ -1,0 +1,11 @@
+date,name,sport_type,duration_minutes,distance_km,avg_power_watts,avg_hr,elevation_gain_m,notes
+2024-06-15,Morning Ride,cycling,90,45.2,210,145,520,Great weather
+2024-06-14,Recovery Spin,cycling,45,20.1,150,125,100,Easy day
+2024-06-13,Hill Repeats,cycling,60,25.0,240,165,650,Tough workout
+2024-06-12,Tempo Ride,cycling,75,38.5,220,155,380,Felt strong
+2024-06-11,Easy Commute,cycling,30,12.0,140,120,50,To work
+2024-06-10,Long Ride,cycling,180,95.0,200,140,1200,Beautiful route
+2024-06-09,Indoor Trainer,cycling,45,0,230,150,0,Zwift session
+2024-06-08,Sprint Intervals,cycling,50,22.0,260,170,120,Very hard
+2024-06-07,Group Ride,cycling,120,65.0,190,138,550,Social ride
+2024-06-06,Active Recovery,cycling,40,15.5,130,115,80,Light spin
