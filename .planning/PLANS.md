@@ -4,6 +4,22 @@
 **Covers:** Phases 1-8
 **Note:** Phases 9-11 (Xert algorithms, Season Planning) are deferred and will be planned when Phases 1-8 are complete.
 
+> **IMPORTANT:** This monolithic file has been split into per-phase files for easier navigation.
+>
+> - Phase-specific plans are now located in `.planning/phases/{phase-name}/PLAN.md`
+> - Cross-phase concerns are in `.planning/phases/CROSS-PHASE-CONCERNS.md`
+> - This file remains as the complete reference but is no longer the primary source.
+>
+> See:
+> - `.planning/phases/01-data-foundation/PLAN.md`
+> - `.planning/phases/02-coggan-metrics/PLAN.md`
+> - `.planning/phases/03-strava-integration/PLAN.md`
+> - `.planning/phases/04-threshold-management/PLAN.md`
+> - `.planning/phases/05-multi-user/PLAN.md`
+> - `.planning/phases/06-frontend-foundation/PLAN.md`
+> - `.planning/phases/07-activity-detail-views/PLAN.md`
+> - `.planning/phases/08-dashboard-charts/PLAN.md`
+
 ---
 
 ## Phase 1: Data Foundation
