@@ -210,8 +210,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Activity Detail Views | 4/4 | Complete | 2026-02-12 |
 | 8. Dashboard & Charts | 5/5 | Complete | 2026-02-12 |
 | 8.1 Upload & Processing UX | 4/4 | Complete | 2026-02-12 |
-| 8.2 Integration Settings & Backfill | 0/3 | Not started | - |
-| 8.3 Unit System & Calendar | 0/4 | Not started | - |
+| 8.2 Integration Settings & Backfill | 3/3 | Complete | 2026-02-12 |
+| 8.3 Unit System & Calendar | 0/4 | In Progress | - |
 | 8.4 Dark Mode & UI Modernization | 0/4 | Not started | - |
 | 9. Xert Algorithm Core | 0/TBD | Not started | - |
 | 10. Xert Advanced Features | 0/TBD | Not started | - |

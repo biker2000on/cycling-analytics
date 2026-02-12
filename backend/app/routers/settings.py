@@ -25,6 +25,9 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 # Valid threshold methods
 VALID_THRESHOLD_METHODS = {"manual", "pct_20min", "pct_8min", "xert_model"}
 
+# Valid unit systems
+VALID_UNIT_SYSTEMS = {"metric", "imperial"}
+
 
 @router.get(
     "",
@@ -49,6 +52,7 @@ async def get_settings(
             calendar_start_day=1,
             weight_kg=None,
             date_of_birth=None,
+            unit_system="metric",
         )
 
     return UserSettingsResponse.model_validate(settings)
@@ -78,6 +82,16 @@ async def update_settings(
             ),
         )
 
+    # Validate unit system if provided
+    if data.unit_system is not None and data.unit_system not in VALID_UNIT_SYSTEMS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid unit system: '{data.unit_system}'. "
+                f"Valid: {', '.join(sorted(VALID_UNIT_SYSTEMS))}"
+            ),
+        )
+
     stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalar_one_or_none()
@@ -88,6 +102,7 @@ async def update_settings(
             ftp_method="manual",
             preferred_threshold_method="manual",
             calendar_start_day=1,
+            unit_system="metric",
         )
         db.add(settings)
 
@@ -100,6 +115,8 @@ async def update_settings(
         settings.weight_kg = data.weight_kg
     if data.date_of_birth is not None:
         settings.date_of_birth = data.date_of_birth
+    if data.unit_system is not None:
+        settings.unit_system = data.unit_system
 
     await db.flush()
 

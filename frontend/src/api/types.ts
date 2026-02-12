@@ -176,6 +176,7 @@ export interface UserSettings {
   calendar_start_day: number;
   weight_kg: number | null;
   date_of_birth: string | null;
+  unit_system: string;
 }
 
 export interface FtpResponse {

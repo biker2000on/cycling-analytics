@@ -3,10 +3,10 @@ import type { Activity } from '../../api/types.ts';
 import {
   formatActivityDate,
   formatDuration,
-  formatDistance,
   formatDecimal1,
   formatDecimal2,
 } from '../../utils/format.ts';
+import { useUnits } from '../../hooks/useUnits.ts';
 import './ActivityTable.css';
 
 type SortField = 'activity_date' | 'duration_seconds' | 'distance_meters' | 'tss' | 'name';
@@ -20,6 +20,7 @@ interface Props {
 
 export default function ActivityTable({ activities, sortField, sortDir, onSort }: Props) {
   const navigate = useNavigate();
+  const { formatDistance, distanceUnit } = useUnits();
 
   function sortIndicator(field: SortField) {
     if (sortField !== field) return '';
@@ -42,7 +43,7 @@ export default function ActivityTable({ activities, sortField, sortDir, onSort }
               Duration{sortIndicator('duration_seconds')}
             </th>
             <th className="num sortable" onClick={() => onSort('distance_meters')}>
-              Distance (km){sortIndicator('distance_meters')}
+              Distance ({distanceUnit}){sortIndicator('distance_meters')}
             </th>
             <th className="num sortable" onClick={() => onSort('tss')}>
               TSS{sortIndicator('tss')}

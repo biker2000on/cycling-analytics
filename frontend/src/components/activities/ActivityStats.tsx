@@ -1,13 +1,12 @@
 import type { Activity } from '../../api/types.ts';
 import {
   formatDuration,
-  formatDistance,
   formatDecimal1,
   formatDecimal2,
   formatWatts,
   formatHR,
-  formatElevation,
 } from '../../utils/format.ts';
+import { useUnits } from '../../hooks/useUnits.ts';
 import './ActivityStats.css';
 
 interface Props {
@@ -22,10 +21,12 @@ interface StatCard {
 }
 
 export default function ActivityStats({ activity, ftp }: Props) {
+  const { formatDistance, formatElevation, distanceUnit, elevationUnit } = useUnits();
+
   const stats: StatCard[] = [
     { label: 'Duration', value: formatDuration(activity.duration_seconds) },
-    { label: 'Distance', value: formatDistance(activity.distance_meters), unit: 'km' },
-    { label: 'Elevation', value: formatElevation(activity.elevation_gain_meters), unit: 'm' },
+    { label: 'Distance', value: formatDistance(activity.distance_meters), unit: distanceUnit },
+    { label: 'Elevation', value: formatElevation(activity.elevation_gain_meters), unit: elevationUnit },
     { label: 'TSS', value: formatDecimal1(activity.tss) },
     { label: 'NP', value: formatWatts(activity.np_watts), unit: 'W' },
     { label: 'IF', value: formatDecimal2(activity.intensity_factor) },

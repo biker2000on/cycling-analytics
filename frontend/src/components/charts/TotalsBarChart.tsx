@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -9,6 +9,8 @@ import {
   CartesianGrid,
 } from 'recharts';
 import type { TotalsPeriod } from '../../api/types.ts';
+import { useUnits } from '../../hooks/useUnits.ts';
+import * as conv from '../../utils/conversions.ts';
 import './TotalsBarChart.css';
 
 interface Props {
@@ -25,22 +27,33 @@ interface ChartData {
   rides: number;
 }
 
-const METRICS: { key: MetricKey; label: string; color: string }[] = [
-  { key: 'tss', label: 'TSS', color: 'var(--color-primary)' },
-  { key: 'duration', label: 'Duration (h)', color: 'var(--color-cadence)' },
-  { key: 'distance', label: 'Distance (km)', color: 'var(--color-warning)' },
-];
-
 export default function TotalsBarChart({ periods }: Props) {
   const [metric, setMetric] = useState<MetricKey>('tss');
+  const { unitSystem, distanceUnit } = useUnits();
+  const isImperial = unitSystem === 'imperial';
 
-  const chartData: ChartData[] = periods.map((p) => ({
-    label: p.period_label,
-    tss: Number(p.total_tss),
-    duration: p.total_duration_seconds / 3600,
-    distance: Number(p.total_distance_meters) / 1000,
-    rides: p.ride_count,
-  }));
+  const METRICS: { key: MetricKey; label: string; color: string }[] = useMemo(
+    () => [
+      { key: 'tss', label: 'TSS', color: 'var(--color-primary)' },
+      { key: 'duration', label: 'Duration (h)', color: 'var(--color-cadence)' },
+      { key: 'distance', label: `Distance (${distanceUnit})`, color: 'var(--color-warning)' },
+    ],
+    [distanceUnit],
+  );
+
+  const chartData: ChartData[] = periods.map((p) => {
+    const distMeters = Number(p.total_distance_meters);
+    const distConverted = isImperial
+      ? (conv.metersToMiles(distMeters) ?? 0)
+      : distMeters / 1000;
+    return {
+      label: p.period_label,
+      tss: Number(p.total_tss),
+      duration: p.total_duration_seconds / 3600,
+      distance: distConverted,
+      rides: p.ride_count,
+    };
+  });
 
   if (chartData.length === 0) {
     return <div className="chart-empty">No totals data available.</div>;
@@ -55,7 +68,7 @@ export default function TotalsBarChart({ periods }: Props) {
       case 'duration':
         return `${value.toFixed(1)}h`;
       case 'distance':
-        return `${Math.round(value)}km`;
+        return `${Math.round(value)}${distanceUnit}`;
     }
   }
 
@@ -101,7 +114,7 @@ export default function TotalsBarChart({ periods }: Props) {
                   <div>{item.rides} ride{item.rides !== 1 ? 's' : ''}</div>
                   <div>TSS: {Math.round(item.tss)}</div>
                   <div>Duration: {item.duration.toFixed(1)}h</div>
-                  <div>Distance: {item.distance.toFixed(1)} km</div>
+                  <div>Distance: {item.distance.toFixed(1)} {distanceUnit}</div>
                 </div>
               );
             }}

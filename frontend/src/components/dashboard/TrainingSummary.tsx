@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { PeriodSummary } from '../../api/types.ts';
 import { getMetricsSummary } from '../../api/metrics.ts';
-import { formatDuration, formatDistance } from '../../utils/format.ts';
+import { formatDuration } from '../../utils/format.ts';
+import { useUnits } from '../../hooks/useUnits.ts';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import './TrainingSummary.css';
 
 export default function TrainingSummary() {
   const [summary, setSummary] = useState<PeriodSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const { formatDistance, distanceUnit } = useUnits();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +60,7 @@ export default function TrainingSummary() {
           </div>
           <div className="summary-stat">
             <span className="summary-stat-value">
-              {formatDistance(summary.total_distance_meters)} km
+              {formatDistance(summary.total_distance_meters)} {distanceUnit}
             </span>
             <span className="summary-stat-label">Distance</span>
           </div>

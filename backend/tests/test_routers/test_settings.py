@@ -58,6 +58,7 @@ def _make_settings(**overrides: object) -> SimpleNamespace:
         "calendar_start_day": 1,
         "weight_kg": Decimal("75.0"),
         "date_of_birth": None,
+        "unit_system": "metric",
         "hr_zones": None,
         "created_at": datetime(2026, 2, 12, 10, 0, 0, tzinfo=UTC),
         "updated_at": datetime(2026, 2, 12, 10, 0, 0, tzinfo=UTC),
@@ -279,3 +280,58 @@ class TestUpdateSettings:
         )
 
         assert response.status_code == 422  # Pydantic validation
+
+    @pytest.mark.asyncio
+    async def test_get_settings_includes_unit_system(self, client: AsyncClient) -> None:
+        """GET /settings returns unit_system field with default metric."""
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.get("/settings")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["unit_system"] == "metric"
+
+    @pytest.mark.asyncio
+    async def test_put_unit_system_imperial(self, client: AsyncClient) -> None:
+        """PUT /settings with unit_system=imperial persists the value."""
+        existing = _make_settings()
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = existing
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_result)
+        mock_db.flush = AsyncMock()
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.put(
+            "/settings",
+            json={"unit_system": "imperial"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["unit_system"] == "imperial"
+
+    @pytest.mark.asyncio
+    async def test_put_invalid_unit_system_returns_400(self, client: AsyncClient) -> None:
+        """PUT /settings with invalid unit_system returns 400."""
+        mock_db = AsyncMock()
+        mock_db.commit = AsyncMock()
+
+        _override_db(mock_db)
+        response = await client.put(
+            "/settings",
+            json={"unit_system": "banana"},
+        )
+
+        assert response.status_code == 400
+        assert "Invalid unit system" in response.json()["detail"]

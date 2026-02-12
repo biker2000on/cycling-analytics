@@ -41,6 +41,9 @@ class UserSettings(Base):
         Integer, server_default="1", nullable=False
     )
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
+    unit_system: Mapped[str] = mapped_column(
+        String(20), server_default="metric", nullable=False
+    )
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

@@ -40,6 +40,9 @@ class UserSettingsResponse(BaseModel):
     )
     weight_kg: Decimal | None = Field(None, description="Body weight in kg")
     date_of_birth: date | None = Field(None, description="Date of birth")
+    unit_system: str = Field(
+        "metric", description="Unit system preference (metric or imperial)"
+    )
 
     model_config = {"from_attributes": True}
 
@@ -58,4 +61,7 @@ class UserSettingsUpdate(BaseModel):
     )
     date_of_birth: date | None = Field(
         None, description="Date of birth"
+    )
+    unit_system: str | None = Field(
+        None, description="Unit system preference (metric or imperial)"
     )

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore.ts';
+import { UnitProvider } from './contexts/UnitContext.tsx';
 import Layout from './components/Layout.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import LoginPage from './pages/LoginPage.tsx';
@@ -23,32 +24,34 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/setup" element={<SetupWizardPage />} />
+      <UnitProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/setup" element={<SetupWizardPage />} />
 
-        {/* Protected routes with layout */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/activities" element={<ActivityListPage />} />
-          <Route path="/activities/:id" element={<ActivityDetailPage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/power-curve" element={<PowerCurvePage />} />
-          <Route path="/totals" element={<TotalsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
+          {/* Protected routes with layout */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/activities" element={<ActivityListPage />} />
+            <Route path="/activities/:id" element={<ActivityDetailPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/power-curve" element={<PowerCurvePage />} />
+            <Route path="/totals" element={<TotalsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
 
-        {/* Default redirect */}
-        <Route path="*" element={<Navigate to="/activities" replace />} />
-      </Routes>
+          {/* Default redirect */}
+          <Route path="*" element={<Navigate to="/activities" replace />} />
+        </Routes>
+      </UnitProvider>
     </BrowserRouter>
   );
 }

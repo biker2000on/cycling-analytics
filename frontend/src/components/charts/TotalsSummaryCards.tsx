@@ -1,5 +1,6 @@
 import type { TotalsPeriod } from '../../api/types.ts';
-import { formatDuration, formatDistance } from '../../utils/format.ts';
+import { formatDuration } from '../../utils/format.ts';
+import { useUnits } from '../../hooks/useUnits.ts';
 import './TotalsSummaryCards.css';
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function TotalsSummaryCards({ periods }: Props) {
+  const { formatDistance, distanceUnit } = useUnits();
   const totalRides = periods.reduce((sum, p) => sum + p.ride_count, 0);
   const totalTss = periods.reduce((sum, p) => sum + Number(p.total_tss), 0);
   const totalDuration = periods.reduce((sum, p) => sum + p.total_duration_seconds, 0);
@@ -27,7 +29,7 @@ export default function TotalsSummaryCards({ periods }: Props) {
         <span className="totals-card-label">Total Time</span>
       </div>
       <div className="totals-card">
-        <span className="totals-card-value">{formatDistance(totalDistance)} km</span>
+        <span className="totals-card-value">{formatDistance(totalDistance)} {distanceUnit}</span>
         <span className="totals-card-label">Total Distance</span>
       </div>
     </div>

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import client from '../api/client.ts';
 import type { UserSettings } from '../api/types.ts';
+import { useUnits } from '../hooks/useUnits.ts';
+import type { UnitSystem } from '../contexts/UnitContext.tsx';
 import GarminConnect from '../components/settings/GarminConnect.tsx';
 import StravaConnect from '../components/settings/StravaConnect.tsx';
 
@@ -11,6 +13,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const { unitSystem, setUnitSystem } = useUnits();
 
   useEffect(() => {
     client
@@ -41,6 +44,10 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleUnitChange(system: UnitSystem) {
+    setUnitSystem(system);
   }
 
   return (
@@ -77,6 +84,50 @@ export default function SettingsPage() {
               {saving ? <span className="spinner" /> : 'Save FTP'}
             </button>
           </form>
+
+          <hr style={{ margin: 'var(--space-lg) 0', borderColor: 'var(--color-border)' }} />
+
+          <h2 style={{ fontSize: '1.125rem', marginBottom: 'var(--space-md)' }}>
+            Units
+          </h2>
+          <div style={{ display: 'flex', gap: 'var(--space-md)' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-xs)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              <input
+                type="radio"
+                name="unit-system"
+                value="metric"
+                checked={unitSystem === 'metric'}
+                onChange={() => handleUnitChange('metric')}
+              />
+              Metric (km, m, kg)
+            </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-xs)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              <input
+                type="radio"
+                name="unit-system"
+                value="imperial"
+                checked={unitSystem === 'imperial'}
+                onChange={() => handleUnitChange('imperial')}
+              />
+              Imperial (mi, ft, lbs)
+            </label>
+          </div>
 
           <hr style={{ margin: 'var(--space-lg) 0', borderColor: 'var(--color-border)' }} />
 

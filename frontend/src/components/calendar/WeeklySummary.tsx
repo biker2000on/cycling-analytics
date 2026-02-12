@@ -1,5 +1,6 @@
 import type { CalendarDay } from '../../api/types.ts';
-import { formatDuration, formatDistance } from '../../utils/format.ts';
+import { formatDuration } from '../../utils/format.ts';
+import { useUnits } from '../../hooks/useUnits.ts';
 import './MonthView.css';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function WeeklySummary({ days, weekLabel }: Props) {
+  const { formatDistance, distanceUnit } = useUnits();
   const totalTss = days.reduce((sum, d) => sum + Number(d.total_tss), 0);
   const totalDuration = days.reduce((sum, d) => sum + d.total_duration_seconds, 0);
   const totalDistance = days.reduce((sum, d) => sum + Number(d.total_distance_meters), 0);
@@ -28,7 +30,7 @@ export default function WeeklySummary({ days, weekLabel }: Props) {
       <span className="weekly-stat">{totalCount} ride{totalCount > 1 ? 's' : ''}</span>
       <span className="weekly-stat">{Math.round(totalTss)} TSS</span>
       <span className="weekly-stat">{formatDuration(totalDuration)}</span>
-      <span className="weekly-stat">{formatDistance(totalDistance)} km</span>
+      <span className="weekly-stat">{formatDistance(totalDistance)} {distanceUnit}</span>
     </div>
   );
 }
