@@ -121,7 +121,7 @@
 | THRS-01 | Phase 4 | Pending |
 | THRS-02 | Phase 4 | Pending |
 | THRS-03 | Phase 4 | Pending |
-| THRS-04 | Phase 4 | Pending |
+| THRS-04 | Phase 10 | Pending |
 | THRS-05 | Phase 4 | Pending |
 | THRS-06 | Phase 4 | Pending |
 | THRS-07 | Phase 4 | Pending |

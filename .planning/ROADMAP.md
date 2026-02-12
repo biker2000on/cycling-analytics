@@ -12,7 +12,7 @@ This roadmap delivers a self-hosted cycling analytics platform from data foundat
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Data Foundation** - Core infrastructure with TimescaleDB, FIT import, precision storage
+- [x] **Phase 1: Data Foundation** - Core infrastructure with TimescaleDB, FIT import, precision storage
 - [ ] **Phase 2: Coggan Metrics Engine** - TSS, NP, CTL/ATL/TSB, power zones
 - [ ] **Phase 3: Strava Integration** - OAuth2, webhooks, activity sync
 - [ ] **Phase 4: Threshold Management** - Multi-method FTP estimation with instant view switching
@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Original FIT files are preserved for reprocessing
   5. All power calculations use NUMERIC types (no floating-point errors)
   6. GPS coordinates use PostGIS GEOGRAPHY type and return correct distances
-  7. System runs via Docker Compose (PostgreSQL + TimescaleDB + Redis)
+  7. System runs via Docker Compose (app + Redis + Celery worker, with optional included PostgreSQL + TimescaleDB or connection to external database)
 **Plans**: TBD
 
 Plans:
@@ -77,15 +77,14 @@ Plans:
 ### Phase 4: Threshold Management
 **Goal**: User can configure threshold estimation method and switch between views instantly
 **Depends on**: Phase 2
-**Requirements**: THRS-01, THRS-02, THRS-03, THRS-04, THRS-05, THRS-06, THRS-07, THRS-08
+**Requirements**: THRS-01, THRS-02, THRS-03, THRS-05, THRS-06, THRS-07, THRS-08 (THRS-04 deferred to Phase 10 -- Xert threshold model requires Xert algorithms from Phase 9)
 **Success Criteria** (what must be TRUE):
   1. User can manually set FTP/threshold value
   2. System calculates threshold as 95% of 20-minute best effort
   3. System calculates threshold as 90% of 8-minute best effort
-  4. System estimates threshold using Xert model (dynamic, changes daily)
-  5. User can select active estimation method in profile settings
-  6. Switching threshold method shows results instantly (pre-cached for all methods)
-  7. Historical threshold-at-ride-time is stored with each activity for accurate retrospective analysis
+  4. User can select active estimation method in profile settings
+  5. Switching threshold method shows results instantly (pre-cached for all methods)
+  6. Historical threshold-at-ride-time is stored with each activity for accurate retrospective analysis
 **Plans**: TBD
 
 Plans:
@@ -166,12 +165,13 @@ Plans:
 ### Phase 10: Xert Advanced Features
 **Goal**: User sees dynamic threshold and metabolic calculations matching Xert exactly
 **Depends on**: Phase 9
-**Requirements**: XERT-04, XERT-05, XERT-06, XERT-07
+**Requirements**: XERT-04, XERT-05, XERT-06, XERT-07, THRS-04 (deferred from Phase 4 -- requires Xert algorithm core from Phase 9)
 **Success Criteria** (what must be TRUE):
   1. System calculates threshold power, high intensity energy, peak power, and lower threshold power matching Xert exactly
   2. System calculates fat expenditure in grams based solely on power output, matching Xert exactly
   3. System calculates carb expenditure in grams based solely on power output, matching Xert exactly
   4. All Xert calculations validated to exact match against active Xert account data (validation test suite passing)
+  5. System estimates threshold using reverse-engineered Xert model (dynamic, changes daily) -- satisfies THRS-04
 **Plans**: TBD
 
 Plans:
@@ -197,7 +197,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/TBD | Not started | - |
+| 1. Data Foundation | 10/10 | Complete | 2026-02-12 |
 | 2. Coggan Metrics Engine | 0/TBD | Not started | - |
 | 3. Strava Integration | 0/TBD | Not started | - |
 | 4. Threshold Management | 0/TBD | Not started | - |
