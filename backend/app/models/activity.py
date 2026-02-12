@@ -96,6 +96,9 @@ class Activity(Base):
     laps: Mapped[list["ActivityLap"]] = relationship(  # noqa: F821
         back_populates="activity", lazy="selectin", cascade="all, delete-orphan"
     )
+    metrics: Mapped[list["ActivityMetrics"]] = relationship(  # noqa: F821
+        back_populates="activity", lazy="selectin", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Activity id={self.id} name={self.name!r} date={self.activity_date}>"
