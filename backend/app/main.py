@@ -18,6 +18,7 @@ from app.routers import (
     settings as settings_router,
     streams,
     tasks,
+    thresholds,
     webhooks,
 )
 
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(routes.router)
     app.include_router(settings_router.router)
     app.include_router(metrics.router)
+    app.include_router(thresholds.router)
     app.include_router(webhooks.router)
 
     return app

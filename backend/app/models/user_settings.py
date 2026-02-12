@@ -1,9 +1,9 @@
 """UserSettings ORM model — per-user training configuration (FTP, zones, weight)."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,6 +32,15 @@ class UserSettings(Base):
 
     # Body weight
     weight_kg: Mapped[Decimal | None] = mapped_column(Numeric, nullable=True)
+
+    # Threshold preference (Phase 4.5)
+    preferred_threshold_method: Mapped[str] = mapped_column(
+        String(50), server_default="manual", nullable=False
+    )
+    calendar_start_day: Mapped[int] = mapped_column(
+        Integer, server_default="1", nullable=False
+    )
+    date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

@@ -1,4 +1,4 @@
-"""User settings endpoints — FTP management."""
+"""User settings endpoints — FTP management and user preferences."""
 
 from datetime import UTC, datetime
 from typing import Annotated
@@ -10,13 +10,105 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
 from app.models.user_settings import UserSettings
-from app.schemas.settings import FtpResponse, FtpSetting
+from app.schemas.settings import (
+    FtpResponse,
+    FtpSetting,
+    UserSettingsResponse,
+    UserSettingsUpdate,
+)
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
+
+# Valid threshold methods
+VALID_THRESHOLD_METHODS = {"manual", "pct_20min", "pct_8min", "xert_model"}
+
+
+@router.get(
+    "",
+    response_model=UserSettingsResponse,
+    summary="Get full user preferences",
+)
+async def get_settings(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserSettingsResponse:
+    """Return the full user preferences for the seed user."""
+    stmt = select(UserSettings).where(UserSettings.user_id == DEFAULT_USER_ID)
+    result = await db.execute(stmt)
+    settings = result.scalar_one_or_none()
+
+    if settings is None:
+        # Return defaults when no settings record exists
+        return UserSettingsResponse(
+            ftp_watts=None,
+            ftp_method="manual",
+            preferred_threshold_method="manual",
+            calendar_start_day=1,
+            weight_kg=None,
+            date_of_birth=None,
+        )
+
+    return UserSettingsResponse.model_validate(settings)
+
+
+@router.put(
+    "",
+    response_model=UserSettingsResponse,
+    summary="Update user preferences",
+)
+async def update_settings(
+    data: UserSettingsUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserSettingsResponse:
+    """Update user preferences (threshold method, calendar, weight, DOB)."""
+    # Validate threshold method if provided
+    if (
+        data.preferred_threshold_method is not None
+        and data.preferred_threshold_method not in VALID_THRESHOLD_METHODS
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid threshold method: '{data.preferred_threshold_method}'. "
+                f"Valid methods: {', '.join(sorted(VALID_THRESHOLD_METHODS))}"
+            ),
+        )
+
+    stmt = select(UserSettings).where(UserSettings.user_id == DEFAULT_USER_ID)
+    result = await db.execute(stmt)
+    settings = result.scalar_one_or_none()
+
+    if settings is None:
+        settings = UserSettings(
+            user_id=DEFAULT_USER_ID,
+            ftp_method="manual",
+            preferred_threshold_method="manual",
+            calendar_start_day=1,
+        )
+        db.add(settings)
+
+    # Apply only provided fields
+    if data.preferred_threshold_method is not None:
+        settings.preferred_threshold_method = data.preferred_threshold_method
+    if data.calendar_start_day is not None:
+        settings.calendar_start_day = data.calendar_start_day
+    if data.weight_kg is not None:
+        settings.weight_kg = data.weight_kg
+    if data.date_of_birth is not None:
+        settings.date_of_birth = data.date_of_birth
+
+    await db.flush()
+
+    logger.info(
+        "settings_updated",
+        user_id=DEFAULT_USER_ID,
+        preferred_method=settings.preferred_threshold_method,
+    )
+
+    return UserSettingsResponse.model_validate(settings)
 
 
 @router.post(
