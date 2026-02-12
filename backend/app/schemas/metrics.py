@@ -78,3 +78,21 @@ class ActivityMetricsResponse(BaseModel):
     computed_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Period Summary
+# ---------------------------------------------------------------------------
+
+
+class PeriodSummary(BaseModel):
+    """Aggregated metrics for a date range."""
+
+    total_tss: Decimal = Field(Decimal("0"), description="Sum of TSS across all rides")
+    ride_count: int = Field(0, description="Number of rides in the period")
+    total_duration_seconds: int = Field(0, description="Total ride duration in seconds")
+    total_distance_meters: Decimal = Field(
+        Decimal("0"), description="Total distance in meters"
+    )
+    start_date: date
+    end_date: date
