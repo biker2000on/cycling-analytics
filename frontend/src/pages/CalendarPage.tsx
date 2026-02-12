@@ -1,62 +1,86 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { CalendarMonth } from '../api/types.ts';
-import { getCalendarData } from '../api/metrics.ts';
+import { format } from 'date-fns';
+import { useInfiniteCalendar } from '../hooks/useInfiniteCalendar.ts';
 import CalendarNavigation from '../components/calendar/CalendarNavigation.tsx';
 import MonthView from '../components/calendar/MonthView.tsx';
 import './CalendarPage.css';
 
 export default function CalendarPage() {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [data, setData] = useState<CalendarMonth | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { months, loadOlder, loadNewer, scrollToToday, activeMonth, setActiveMonth } = useInfiniteCalendar();
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getCalendarData(year, month);
-      setData(result);
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to load calendar data';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [year, month]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
+  // IntersectionObserver for loading older months (top sentinel)
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const topSentinel = topSentinelRef.current;
+    if (!topSentinel) return;
 
-  function handlePrev() {
-    if (month === 1) {
-      setYear((y) => y - 1);
-      setMonth(12);
-    } else {
-      setMonth((m) => m - 1);
-    }
-  }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadOlder();
+        }
+      },
+      { threshold: 0.1 }
+    );
 
-  function handleNext() {
-    if (month === 12) {
-      setYear((y) => y + 1);
-      setMonth(1);
-    } else {
-      setMonth((m) => m + 1);
-    }
-  }
+    observer.observe(topSentinel);
+    return () => observer.disconnect();
+  }, [loadOlder]);
 
-  function handleDayClick(dateStr: string) {
-    // Navigate to activities filtered by date (or expand inline)
+  // IntersectionObserver for loading newer months (bottom sentinel)
+  useEffect(() => {
+    const bottomSentinel = bottomSentinelRef.current;
+    if (!bottomSentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadNewer();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(bottomSentinel);
+    return () => observer.disconnect();
+  }, [loadNewer]);
+
+  // IntersectionObserver for tracking active month (sticky headers)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const headers = container.querySelectorAll('.calendar-month-sticky-header');
+    if (headers.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const header = entry.target as HTMLElement;
+            const year = parseInt(header.dataset.year || '0', 10);
+            const month = parseInt(header.dataset.month || '0', 10);
+            if (year && month) {
+              setActiveMonth(year, month);
+            }
+          }
+        });
+      },
+      { threshold: [0.5], root: container }
+    );
+
+    headers.forEach((header) => observer.observe(header));
+    return () => observer.disconnect();
+  }, [months, setActiveMonth]);
+
+  const handleDayClick = useCallback((dateStr: string) => {
     navigate(`/activities?date=${dateStr}`);
-  }
+  }, [navigate]);
 
   return (
     <div className="calendar-page">
@@ -66,21 +90,49 @@ export default function CalendarPage() {
 
       <div className="card calendar-card">
         <CalendarNavigation
-          year={year}
-          month={month}
-          onPrev={handlePrev}
-          onNext={handleNext}
+          year={activeMonth?.year || new Date().getFullYear()}
+          month={activeMonth?.month || new Date().getMonth() + 1}
+          onTodayClick={scrollToToday}
         />
 
-        {error && <div className="alert alert-error">{error}</div>}
+        <div className="calendar-scroll-container" ref={scrollContainerRef}>
+          {/* Top sentinel for loading older months */}
+          <div ref={topSentinelRef} className="calendar-sentinel" />
 
-        {loading ? (
-          <div className="loading-state">
-            <span className="spinner" /> Loading calendar...
-          </div>
-        ) : data ? (
-          <MonthView calendarData={data} onDayClick={handleDayClick} />
-        ) : null}
+          {months.map((monthData) => {
+            const monthKey = `${monthData.year}-${String(monthData.month).padStart(2, '0')}`;
+            const monthId = `month-${monthKey}`;
+            const dateObj = new Date(monthData.year, monthData.month - 1, 1);
+            const monthLabel = format(dateObj, 'MMMM yyyy');
+
+            return (
+              <div key={monthKey} id={monthId} className="calendar-month-section">
+                <div
+                  className="calendar-month-sticky-header"
+                  data-year={monthData.year}
+                  data-month={monthData.month}
+                >
+                  {monthLabel}
+                </div>
+
+                {monthData.error && (
+                  <div className="alert alert-error">{monthData.error}</div>
+                )}
+
+                {monthData.loading ? (
+                  <div className="loading-state">
+                    <span className="spinner" /> Loading...
+                  </div>
+                ) : monthData.data ? (
+                  <MonthView calendarData={monthData.data} onDayClick={handleDayClick} />
+                ) : null}
+              </div>
+            );
+          })}
+
+          {/* Bottom sentinel for loading newer months */}
+          <div ref={bottomSentinelRef} className="calendar-sentinel" />
+        </div>
       </div>
     </div>
   );
