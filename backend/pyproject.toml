@@ -23,6 +23,8 @@ dependencies = [
     "garminconnect",
     "cryptography",
     "httpx",
+    "bcrypt",
+    "pyjwt",
 ]
 
 [dependency-groups]

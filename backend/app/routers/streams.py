@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
 from app.models.activity import Activity
+from app.models.user import User
 from app.schemas.stream import StreamResponse, StreamSummaryResponse
 from app.services.stream_service import get_activity_streams, get_activity_streams_summary
 
@@ -16,17 +17,16 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/activities", tags=["streams"])
 
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
-
 
 async def _get_validated_activity(
     activity_id: int,
     db: AsyncSession,
+    user_id: int,
 ) -> Activity:
-    """Fetch activity and raise 404 if not found or not owned by default user."""
+    """Fetch activity and raise 404 if not found or not owned by current user."""
     stmt = select(Activity).where(
         Activity.id == activity_id,
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == user_id,
     )
     result = await db.execute(stmt)
     activity = result.scalar_one_or_none()
@@ -46,9 +46,10 @@ async def _get_validated_activity(
 async def get_streams(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> StreamResponse:
     """Return all per-second stream data in columnar format."""
-    await _get_validated_activity(activity_id, db)
+    await _get_validated_activity(activity_id, db, current_user.id)
     return await get_activity_streams(activity_id, db)
 
 
@@ -60,8 +61,9 @@ async def get_streams(
 async def get_streams_summary(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     points: int = Query(default=500, ge=2, le=5000, description="Target point count"),
 ) -> StreamSummaryResponse:
     """Return LTTB-downsampled stream data for efficient chart rendering."""
-    await _get_validated_activity(activity_id, db)
+    await _get_validated_activity(activity_id, db, current_user.id)
     return await get_activity_streams_summary(activity_id, points, db)

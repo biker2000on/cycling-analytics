@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
 from app.models.activity import Activity, ProcessingStatus
 from app.models.import_batch import ImportBatch
+from app.models.user import User
 from app.schemas.import_batch import (
     DirectoryImportRequest,
     ImportBatchResponse,
@@ -25,8 +26,6 @@ from app.services.batch_import_service import (
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/imports", tags=["imports"])
-
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
 
 MAX_ZIP_UPLOAD_SIZE = 500 * 1024 * 1024  # 500 MB
 
@@ -45,6 +44,7 @@ MAX_ZIP_UPLOAD_SIZE = 500 * 1024 * 1024  # 500 MB
 async def upload_archive(
     file: UploadFile,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ImportBatchStatusResponse:
     """Accept a zip archive, extract .fit files, and queue them for processing.
 
@@ -72,7 +72,7 @@ async def upload_archive(
         )
 
     try:
-        batch, results = await extract_and_queue_zip(content, DEFAULT_USER_ID, db)
+        batch, results = await extract_and_queue_zip(content, current_user.id, db)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -108,6 +108,7 @@ async def upload_archive(
 async def upload_bulk(
     files: list[UploadFile],
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ImportBatchStatusResponse:
     """Accept multiple FIT files in a single request and queue them for processing."""
     if not files:
@@ -117,7 +118,7 @@ async def upload_bulk(
         )
 
     try:
-        batch, results = await queue_multiple_files(files, DEFAULT_USER_ID, db)
+        batch, results = await queue_multiple_files(files, current_user.id, db)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -153,13 +154,14 @@ async def upload_bulk(
 async def import_directory(
     body: DirectoryImportRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ImportBatchStatusResponse:
     """Scan a server-side directory for FIT files and queue them for import.
 
     IMPORTANT: Path traversal prevention is enforced.
     """
     try:
-        batch, results = await scan_directory(body.path, DEFAULT_USER_ID, db)
+        batch, results = await scan_directory(body.path, current_user.id, db)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -194,6 +196,7 @@ async def import_directory(
 async def get_batch_status(
     batch_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ImportBatchStatusResponse:
     """Return batch progress with per-file status.
 
@@ -203,7 +206,7 @@ async def get_batch_status(
     # Fetch batch
     stmt = select(ImportBatch).where(
         ImportBatch.id == batch_id,
-        ImportBatch.user_id == DEFAULT_USER_ID,
+        ImportBatch.user_id == current_user.id,
     )
     result = await db.execute(stmt)
     batch = result.scalar_one_or_none()
@@ -217,7 +220,7 @@ async def get_batch_status(
     # Find all activities created around the same time as the batch
     # that were queued via this batch (approximation via created_at window)
     activities_stmt = select(Activity).where(
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == current_user.id,
         Activity.created_at >= batch.created_at,
     ).order_by(Activity.id)
 

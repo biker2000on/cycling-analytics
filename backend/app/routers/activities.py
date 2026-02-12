@@ -15,10 +15,11 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
 from app.models.activity import Activity, ActivitySource, ProcessingStatus
 from app.models.activity_lap import ActivityLap
 from app.models.activity_stream import ActivityStream
+from app.models.user import User
 from app.schemas.activity import (
     ActivityListResponse,
     ActivityResponse,
@@ -86,8 +87,6 @@ def _validate_fit_magic(content: bytes) -> bool:
 # Endpoints
 # ---------------------------------------------------------------------------
 
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
-
 
 @router.post(
     "/upload-fit",
@@ -99,6 +98,7 @@ async def upload_fit(
     request: Request,
     file: UploadFile,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ActivityUploadResponse:
     """Accept a multipart FIT file upload.
 
@@ -135,7 +135,7 @@ async def upload_fit(
     await file.seek(0)
 
     try:
-        activity, task_id = await handle_upload(file, db, user_id=DEFAULT_USER_ID)
+        activity, task_id = await handle_upload(file, db, user_id=current_user.id)
     except DuplicateFileError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -152,13 +152,14 @@ async def upload_fit(
 )
 async def list_activities(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     limit: int = Query(default=20, ge=1, le=100, description="Page size"),
     offset: int = Query(default=0, ge=0, description="Page offset"),
 ) -> ActivityListResponse:
     """Return a paginated list of activities sorted by activity_date DESC."""
     # Count total
     count_stmt = select(func.count()).select_from(Activity).where(
-        Activity.user_id == DEFAULT_USER_ID
+        Activity.user_id == current_user.id
     )
     total_result = await db.execute(count_stmt)
     total = total_result.scalar_one()
@@ -166,7 +167,7 @@ async def list_activities(
     # Fetch page
     stmt = (
         select(Activity)
-        .where(Activity.user_id == DEFAULT_USER_ID)
+        .where(Activity.user_id == current_user.id)
         .order_by(Activity.activity_date.desc())
         .limit(limit)
         .offset(offset)
@@ -188,6 +189,7 @@ async def list_activities(
 )
 async def export_activities_csv(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     start_date: datetime | None = Query(default=None, description="Filter: start date (inclusive)"),
     end_date: datetime | None = Query(default=None, description="Filter: end date (inclusive)"),
 ) -> StreamingResponse:
@@ -195,7 +197,7 @@ async def export_activities_csv(
 
     Supports optional date range filtering via ``start_date`` and ``end_date``.
     """
-    stmt = select(Activity).where(Activity.user_id == DEFAULT_USER_ID)
+    stmt = select(Activity).where(Activity.user_id == current_user.id)
 
     if start_date is not None:
         stmt = stmt.where(Activity.activity_date >= start_date)
@@ -262,11 +264,12 @@ async def export_activities_csv(
 async def get_activity(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ActivityResponse:
     """Return a single activity by ID."""
     stmt = select(Activity).where(
         Activity.id == activity_id,
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == current_user.id,
     )
     result = await db.execute(stmt)
     activity = result.scalar_one_or_none()
@@ -287,6 +290,7 @@ async def get_activity(
 async def download_fit_file(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> FileResponse:
     """Return the original FIT file as a binary download.
 
@@ -294,7 +298,7 @@ async def download_fit_file(
     """
     stmt = select(Activity).where(
         Activity.id == activity_id,
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == current_user.id,
     )
     result = await db.execute(stmt)
     activity = result.scalar_one_or_none()
@@ -340,12 +344,13 @@ async def download_fit_file(
 async def delete_activity(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> None:
     """Delete an activity and its associated streams, laps, and FIT file."""
     # Fetch activity
     stmt = select(Activity).where(
         Activity.id == activity_id,
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == current_user.id,
     )
     result = await db.execute(stmt)
     activity = result.scalar_one_or_none()
@@ -384,13 +389,14 @@ async def delete_activity(
 async def create_manual_activity(
     data: ManualActivityCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> ActivityResponse:
     """Create a manual activity entry (no FIT file).
 
     Manual activities are immediately marked as complete and require no further processing.
     """
     activity = Activity(
-        user_id=DEFAULT_USER_ID,
+        user_id=current_user.id,
         source=ActivitySource.manual,
         activity_date=data.activity_date,
         name=data.name,
@@ -425,6 +431,7 @@ async def create_manual_activity(
 async def import_csv(
     file: UploadFile,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> CsvImportResponse:
     """Import activities from a CSV file.
 
@@ -440,4 +447,4 @@ async def import_csv(
             detail="CSV file too large. Maximum size is 10 MB.",
         )
 
-    return await parse_and_import_csv(content, DEFAULT_USER_ID, db)
+    return await parse_and_import_csv(content, current_user.id, db)

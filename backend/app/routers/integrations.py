@@ -9,8 +9,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
 from app.models.integration import Integration, IntegrationProvider, IntegrationStatus
+from app.models.user import User
 from app.schemas.integration import (
     GarminConnectRequest,
     IntegrationStatusResponse,
@@ -35,8 +36,6 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -45,7 +44,7 @@ DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
 
 async def _get_garmin_integration(
     db: AsyncSession,
-    user_id: int = DEFAULT_USER_ID,
+    user_id: int,
 ) -> Integration | None:
     """Fetch the Garmin integration for a user, or None."""
     stmt = select(Integration).where(
@@ -70,6 +69,7 @@ async def _get_garmin_integration(
 async def connect_garmin(
     body: GarminConnectRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> IntegrationStatusResponse:
     """Save encrypted Garmin credentials and verify login.
 
@@ -96,7 +96,7 @@ async def connect_garmin(
     encrypted = encrypt_credentials(body.email, body.password, settings.SECRET_KEY)
 
     # Check for existing integration
-    integration = await _get_garmin_integration(db)
+    integration = await _get_garmin_integration(db, current_user.id)
 
     if integration is not None:
         # Update existing
@@ -108,7 +108,7 @@ async def connect_garmin(
     else:
         # Create new
         integration = Integration(
-            user_id=DEFAULT_USER_ID,
+            user_id=current_user.id,
             provider=IntegrationProvider.garmin,
             credentials_encrypted=encrypted,
             sync_enabled=True,
@@ -129,9 +129,10 @@ async def connect_garmin(
 )
 async def trigger_garmin_sync(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> dict[str, str]:
     """Queue a manual Garmin sync for activities and health data."""
-    integration = await _get_garmin_integration(db)
+    integration = await _get_garmin_integration(db, current_user.id)
 
     if integration is None:
         raise HTTPException(
@@ -148,12 +149,12 @@ async def trigger_garmin_sync(
     # Queue Celery tasks on low_priority queue
     activity_task = celery_app.send_task(
         "app.workers.tasks.garmin_sync.sync_garmin_activities",
-        args=[DEFAULT_USER_ID],
+        args=[current_user.id],
         queue="low_priority",
     )
     health_task = celery_app.send_task(
         "app.workers.tasks.garmin_sync.sync_garmin_health",
-        args=[DEFAULT_USER_ID],
+        args=[current_user.id],
         queue="low_priority",
     )
 
@@ -177,9 +178,10 @@ async def trigger_garmin_sync(
 )
 async def get_garmin_status(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> IntegrationStatusResponse:
     """Return current Garmin integration status."""
-    integration = await _get_garmin_integration(db)
+    integration = await _get_garmin_integration(db, current_user.id)
 
     if integration is None:
         raise HTTPException(
@@ -197,9 +199,10 @@ async def get_garmin_status(
 )
 async def disconnect_garmin(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> None:
     """Clear Garmin credentials and disable sync."""
-    integration = await _get_garmin_integration(db)
+    integration = await _get_garmin_integration(db, current_user.id)
 
     if integration is None:
         raise HTTPException(
@@ -222,7 +225,7 @@ async def disconnect_garmin(
 
 async def _get_strava_integration(
     db: AsyncSession,
-    user_id: int = DEFAULT_USER_ID,
+    user_id: int,
 ) -> Integration | None:
     """Fetch the Strava integration for a user, or None."""
     stmt = select(Integration).where(
@@ -262,6 +265,7 @@ async def strava_authorize() -> StravaAuthUrl:
 async def strava_callback(
     code: Annotated[str, Query(description="Authorization code from Strava")],
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> StravaCallbackResponse:
     """Exchange Strava authorization code for tokens and store them."""
     settings = get_settings()
@@ -288,7 +292,7 @@ async def strava_callback(
     refresh_encrypted = encrypt_token(refresh_token, settings.SECRET_KEY)
 
     # Upsert integration
-    integration = await _get_strava_integration(db)
+    integration = await _get_strava_integration(db, current_user.id)
 
     if integration is not None:
         integration.access_token_encrypted = access_encrypted
@@ -301,7 +305,7 @@ async def strava_callback(
         logger.info("strava_integration_updated", integration_id=integration.id)
     else:
         integration = Integration(
-            user_id=DEFAULT_USER_ID,
+            user_id=current_user.id,
             provider=IntegrationProvider.strava,
             access_token_encrypted=access_encrypted,
             refresh_token_encrypted=refresh_encrypted,
@@ -325,9 +329,10 @@ async def strava_callback(
 )
 async def strava_status(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> StravaStatus:
     """Return current Strava integration connection status."""
-    integration = await _get_strava_integration(db)
+    integration = await _get_strava_integration(db, current_user.id)
 
     if integration is None:
         return StravaStatus(connected=False)
@@ -346,9 +351,10 @@ async def strava_status(
 )
 async def strava_disconnect(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> None:
     """Clear Strava tokens and disable sync."""
-    integration = await _get_strava_integration(db)
+    integration = await _get_strava_integration(db, current_user.id)
 
     if integration is None:
         raise HTTPException(
@@ -375,9 +381,10 @@ async def strava_disconnect(
 )
 async def trigger_strava_sync(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> dict[str, str]:
     """Queue a manual Strava activity sync."""
-    integration = await _get_strava_integration(db)
+    integration = await _get_strava_integration(db, current_user.id)
 
     if integration is None:
         raise HTTPException(
@@ -393,7 +400,7 @@ async def trigger_strava_sync(
 
     task = celery_app.send_task(
         "app.workers.tasks.strava_sync.sync_strava_activities",
-        args=[DEFAULT_USER_ID],
+        args=[current_user.id],
         queue="low_priority",
     )
 
@@ -412,9 +419,10 @@ async def trigger_strava_sync(
 )
 async def trigger_strava_backfill(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> dict[str, str]:
     """Queue a full historical backfill of all Strava activities."""
-    integration = await _get_strava_integration(db)
+    integration = await _get_strava_integration(db, current_user.id)
 
     if integration is None:
         raise HTTPException(
@@ -430,7 +438,7 @@ async def trigger_strava_backfill(
 
     task = celery_app.send_task(
         "app.workers.tasks.strava_sync.strava_historical_backfill",
-        args=[DEFAULT_USER_ID],
+        args=[current_user.id],
         queue="low_priority",
     )
 

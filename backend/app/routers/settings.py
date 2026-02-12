@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
+from app.models.user import User
 from app.models.user_settings import UserSettings
 from app.schemas.settings import (
     FtpResponse,
@@ -21,8 +22,6 @@ logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
-
 # Valid threshold methods
 VALID_THRESHOLD_METHODS = {"manual", "pct_20min", "pct_8min", "xert_model"}
 
@@ -34,9 +33,10 @@ VALID_THRESHOLD_METHODS = {"manual", "pct_20min", "pct_8min", "xert_model"}
 )
 async def get_settings(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> UserSettingsResponse:
-    """Return the full user preferences for the seed user."""
-    stmt = select(UserSettings).where(UserSettings.user_id == DEFAULT_USER_ID)
+    """Return the full user preferences for the current user."""
+    stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalar_one_or_none()
 
@@ -62,6 +62,7 @@ async def get_settings(
 async def update_settings(
     data: UserSettingsUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> UserSettingsResponse:
     """Update user preferences (threshold method, calendar, weight, DOB)."""
     # Validate threshold method if provided
@@ -77,13 +78,13 @@ async def update_settings(
             ),
         )
 
-    stmt = select(UserSettings).where(UserSettings.user_id == DEFAULT_USER_ID)
+    stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalar_one_or_none()
 
     if settings is None:
         settings = UserSettings(
-            user_id=DEFAULT_USER_ID,
+            user_id=current_user.id,
             ftp_method="manual",
             preferred_threshold_method="manual",
             calendar_start_day=1,
@@ -104,7 +105,7 @@ async def update_settings(
 
     logger.info(
         "settings_updated",
-        user_id=DEFAULT_USER_ID,
+        user_id=current_user.id,
         preferred_method=settings.preferred_threshold_method,
     )
 
@@ -120,9 +121,10 @@ async def update_settings(
 async def set_ftp(
     data: FtpSetting,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> FtpResponse:
-    """Create or update the FTP setting for the seed user."""
-    stmt = select(UserSettings).where(UserSettings.user_id == DEFAULT_USER_ID)
+    """Create or update the FTP setting for the current user."""
+    stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalar_one_or_none()
 
@@ -130,7 +132,7 @@ async def set_ftp(
 
     if settings is None:
         settings = UserSettings(
-            user_id=DEFAULT_USER_ID,
+            user_id=current_user.id,
             ftp_watts=data.ftp_watts,
             ftp_method="manual",
             ftp_updated_at=now,
@@ -143,7 +145,7 @@ async def set_ftp(
 
     await db.flush()
 
-    logger.info("ftp_updated", user_id=DEFAULT_USER_ID, ftp_watts=str(data.ftp_watts))
+    logger.info("ftp_updated", user_id=current_user.id, ftp_watts=str(data.ftp_watts))
 
     return FtpResponse(
         ftp_watts=settings.ftp_watts,
@@ -159,9 +161,10 @@ async def set_ftp(
 )
 async def get_ftp(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> FtpResponse:
-    """Retrieve the current FTP setting for the seed user."""
-    stmt = select(UserSettings).where(UserSettings.user_id == DEFAULT_USER_ID)
+    """Retrieve the current FTP setting for the current user."""
+    stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
     result = await db.execute(stmt)
     settings = result.scalar_one_or_none()
 

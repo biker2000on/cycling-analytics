@@ -7,16 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
 from app.models.activity import Activity
+from app.models.user import User
 from app.schemas.route import RouteGeoJSON
 from app.services.stream_service import get_activity_route
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/activities", tags=["routes"])
-
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
 
 
 @router.get(
@@ -27,6 +26,7 @@ DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
 async def get_route(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
 ) -> RouteGeoJSON:
     """Return a GeoJSON Feature with a LineString geometry for the GPS track.
 
@@ -34,7 +34,7 @@ async def get_route(
     """
     stmt = select(Activity).where(
         Activity.id == activity_id,
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == current_user.id,
     )
     result = await db.execute(stmt)
     activity = result.scalar_one_or_none()

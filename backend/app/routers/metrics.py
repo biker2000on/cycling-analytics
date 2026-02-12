@@ -10,10 +10,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.dependencies import get_db
+from app.dependencies import get_current_user_or_default, get_db
 from app.models.activity import Activity
 from app.models.activity_metrics import ActivityMetrics
 from app.models.fitness_metrics import DailyFitness
+from app.models.user import User
 from app.schemas.metrics import (
     ActivityMetricsResponse,
     FitnessDataPoint,
@@ -30,8 +31,6 @@ from app.services.cache_service import (
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
-
-DEFAULT_USER_ID = 1  # Phase 1: no auth, single seed user
 
 # Cache TTL constants (seconds)
 FITNESS_CACHE_TTL = 300  # 5 minutes
@@ -52,6 +51,7 @@ def _get_cache() -> CacheService:
 )
 async def get_fitness(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     start_date: date | None = Query(default=None, description="Start date (default: 90 days ago)"),
     end_date: date | None = Query(default=None, description="End date (default: today)"),
     threshold_method: str = Query(default="manual", description="Threshold method"),
@@ -76,7 +76,7 @@ async def get_fitness(
     # Check cache
     cache = _get_cache()
     cache_key = fitness_cache_key(
-        DEFAULT_USER_ID, threshold_method, str(start_date), str(end_date)
+        current_user.id, threshold_method, str(start_date), str(end_date)
     )
     try:
         cached = await cache.get_json(cache_key)
@@ -90,7 +90,7 @@ async def get_fitness(
     stmt = (
         select(DailyFitness)
         .where(
-            DailyFitness.user_id == DEFAULT_USER_ID,
+            DailyFitness.user_id == current_user.id,
             DailyFitness.threshold_method == threshold_method,
             DailyFitness.date >= start_date,
             DailyFitness.date <= end_date,
@@ -136,6 +136,7 @@ async def get_fitness(
 async def get_activity_metrics(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     threshold_method: str = Query(default="manual", description="Threshold method"),
 ) -> ActivityMetricsResponse:
     """Return computed Coggan metrics for a single activity.
@@ -156,7 +157,7 @@ async def get_activity_metrics(
     # Cache miss — query DB
     stmt = select(ActivityMetrics).where(
         ActivityMetrics.activity_id == activity_id,
-        ActivityMetrics.user_id == DEFAULT_USER_ID,
+        ActivityMetrics.user_id == current_user.id,
         ActivityMetrics.threshold_method == threshold_method,
     )
     result = await db.execute(stmt)
@@ -190,10 +191,11 @@ async def get_activity_metrics(
 async def get_activity_metrics_legacy(
     activity_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     threshold_method: str = Query(default="manual", description="Threshold method"),
 ) -> ActivityMetricsResponse:
     """Deprecated: use GET /metrics/activities/{activity_id} instead."""
-    return await get_activity_metrics(activity_id, db, threshold_method)
+    return await get_activity_metrics(activity_id, db, current_user, threshold_method)
 
 
 @router.get(
@@ -203,6 +205,7 @@ async def get_activity_metrics_legacy(
 )
 async def get_period_summary(
     db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
     start_date: date | None = Query(default=None, description="Start date (default: 30 days ago)"),
     end_date: date | None = Query(default=None, description="End date (default: today)"),
 ) -> PeriodSummary:
@@ -224,7 +227,7 @@ async def get_period_summary(
 
     # Check cache
     cache = _get_cache()
-    cache_key = summary_cache_key(DEFAULT_USER_ID, str(start_date), str(end_date))
+    cache_key = summary_cache_key(current_user.id, str(start_date), str(end_date))
     try:
         cached = await cache.get_json(cache_key)
         if cached is not None:
@@ -242,7 +245,7 @@ async def get_period_summary(
             "total_distance_meters"
         ),
     ).where(
-        Activity.user_id == DEFAULT_USER_ID,
+        Activity.user_id == current_user.id,
         Activity.activity_date >= start_date,
         Activity.activity_date <= end_date,
     )
