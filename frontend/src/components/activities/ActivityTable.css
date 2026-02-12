@@ -1,0 +1,57 @@
+.activity-table-wrapper {
+  overflow-x: auto;
+}
+
+.activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.activity-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.activity-table th.sortable {
+  cursor: pointer;
+}
+
+.activity-table th.sortable:hover {
+  color: var(--color-text);
+}
+
+.activity-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-row {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.activity-row:hover {
+  background: var(--color-bg-hover);
+}
+
+.activity-name {
+  font-weight: 500;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
