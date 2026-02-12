@@ -45,14 +45,12 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
   const currentMonth = now.getMonth() + 1;
 
   const [months, setMonths] = useState<MonthData[]>(() => {
-    // Start with 3 months: previous, current, next
+    // Start with 2 months: previous, current (no next to allow loadNewer to work)
     const prev = decrementMonth(currentYear, currentMonth);
-    const next = incrementMonth(currentYear, currentMonth);
 
     return [
       { year: prev.year, month: prev.month, data: null, loading: true, error: null },
       { year: currentYear, month: currentMonth, data: null, loading: true, error: null },
-      { year: next.year, month: next.month, data: null, loading: true, error: null },
     ];
   });
 
@@ -66,6 +64,7 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
   }, []);
 
   const loadingRef = useRef(new Set<string>());
+  const pendingMonths = useRef(new Set<string>());
 
   // Fetch data for a specific month
   const fetchMonth = useCallback(async (year: number, month: number) => {
@@ -101,20 +100,14 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
     }
   }, []);
 
-  // Load initial months
-  useEffect(() => {
-    months.forEach((m) => {
-      if (m.data === null && !m.loading && m.error === null) {
-        fetchMonth(m.year, m.month);
-      }
-    });
-  }, [months, fetchMonth]);
-
   // Auto-fetch when months are added
   useEffect(() => {
     months.forEach((m) => {
       if (m.loading && m.data === null && m.error === null) {
+        const key = getMonthKey(m.year, m.month);
         fetchMonth(m.year, m.month);
+        // Clear from pending set after state is committed
+        pendingMonths.current.delete(key);
       }
     });
   }, [months, fetchMonth]);
@@ -125,6 +118,13 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
 
       const oldest = prev[0];
       const olderMonth = decrementMonth(oldest.year, oldest.month);
+      const key = getMonthKey(olderMonth.year, olderMonth.month);
+
+      // Prevent duplicate additions during rapid scrolling
+      if (pendingMonths.current.has(key)) {
+        return prev;
+      }
+      pendingMonths.current.add(key);
 
       // Prepend older month
       let updated = [
@@ -148,13 +148,22 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
       const newest = prev[prev.length - 1];
       const newerMonth = incrementMonth(newest.year, newest.month);
 
-      // Don't load future months beyond current month
+      // Allow loading up to one month into the future
+      const limit = incrementMonth(currentYear, currentMonth);
       if (
-        newerMonth.year > currentYear ||
-        (newerMonth.year === currentYear && newerMonth.month > currentMonth)
+        newerMonth.year > limit.year ||
+        (newerMonth.year === limit.year && newerMonth.month > limit.month)
       ) {
         return prev;
       }
+
+      const key = getMonthKey(newerMonth.year, newerMonth.month);
+
+      // Prevent duplicate additions during rapid scrolling
+      if (pendingMonths.current.has(key)) {
+        return prev;
+      }
+      pendingMonths.current.add(key);
 
       // Append newer month
       let updated = [

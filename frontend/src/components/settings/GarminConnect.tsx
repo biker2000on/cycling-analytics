@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
+import Swal from 'sweetalert2';
 import {
   connectGarmin,
   getGarminStatus,
@@ -76,9 +77,16 @@ export default function GarminConnect() {
   }
 
   async function handleDisconnect() {
-    if (!window.confirm('Disconnect Garmin Connect? Your imported activities will be kept.')) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: 'Disconnect Garmin Connect?',
+      text: 'Your imported activities will be kept.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Disconnect',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+    });
+    if (!result.isConfirmed) return;
     try {
       await disconnectGarmin();
       setStatus(null);

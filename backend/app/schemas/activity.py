@@ -97,6 +97,7 @@ class FileUploadResult(BaseModel):
     activity_id: int | None = None
     task_id: str | None = None
     error: str | None = None
+    source_file: str | None = None
 
 
 class MultiUploadResponse(BaseModel):

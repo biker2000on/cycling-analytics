@@ -20,10 +20,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Frontend Foundation** - React SPA, activity list/detail
 - [x] **Phase 7: Activity Detail Views** - Power analysis, HR analysis, route maps, zone shading
 - [x] **Phase 8: Dashboard & Charts** - Fitness tracker, critical power, calendar, totals
-- [ ] **Phase 8.1: Upload & Processing UX** (INSERTED) - Drag-drop upload, real progress tracking, processing status
-- [ ] **Phase 8.2: Integration Settings & Backfill** (INSERTED) - Garmin/Strava connection UI, backfill config, OAuth fix
+- [x] **Phase 8.1: Upload & Processing UX** (INSERTED) - Drag-drop upload, real progress tracking, processing status
+- [x] **Phase 8.2: Integration Settings & Backfill** (INSERTED) - Garmin/Strava connection UI, backfill config, OAuth fix
 - [x] **Phase 8.3: Unit System & Calendar** (INSERTED) - Metric/imperial conversion, infinite scroll calendar
 - [x] **Phase 8.4: Dark Mode & UI Modernization** (INSERTED) - Theme toggle, CSS dark mode, visual polish
+- [ ] **Phase 8.5: Upload Fix & Calendar Scroll** (INSERTED) - ZIP upload result mapping, calendar infinite scroll fixes, sweetalert2
 - [ ] **Phase 9: Xert Algorithm Core** - XSS Low/High/Peak strain calculations
 - [ ] **Phase 10: Xert Advanced Features** - Dynamic threshold model, metabolic calculations, validation
 - [ ] **Phase 11: Season Planning** - Block periodization, goal-based CTL progression
@@ -213,6 +214,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 8.2 Integration Settings & Backfill | 3/3 | Complete | 2026-02-12 |
 | 8.3 Unit System & Calendar | 4/4 | Complete | 2026-02-12 |
 | 8.4 Dark Mode & UI Modernization | 4/4 | Complete | 2026-02-12 |
+| 8.5 Upload Fix & Calendar Scroll | 0/4 | In Progress | - |
 | 9. Xert Algorithm Core | 0/TBD | Not started | - |
 | 10. Xert Advanced Features | 0/TBD | Not started | - |
 | 11. Season Planning | 0/TBD | Not started | - |

@@ -364,3 +364,65 @@ async def test_mixed_fit_and_zip_upload(client: AsyncClient) -> None:
     assert data["total_files"] == 2
     assert data["successful"] == 2
     assert data["failed"] == 0
+
+
+@pytest.mark.asyncio
+async def test_source_file_set_for_zip_upload(client: AsyncClient) -> None:
+    """Zip upload sets source_file to the zip filename for all extracted entries."""
+    fit_content = _make_valid_fit_bytes()
+    zip_bytes = _make_zip_with_fits({
+        "ride_a.fit": fit_content,
+        "ride_b.fit": fit_content,
+    })
+
+    call_count = 0
+
+    async def mock_upload_side_effect(file, db, user_id=1):
+        nonlocal call_count
+        call_count += 1
+        return (_make_fake_activity(activity_id=call_count), f"task-{call_count}")
+
+    with (
+        patch("app.services.import_service.handle_upload", new_callable=AsyncMock) as mock_upload,
+        patch("app.routers.activities._check_rate_limit", return_value=True),
+    ):
+        mock_upload.side_effect = mock_upload_side_effect
+        response = await client.post(
+            "/activities/upload",
+            files=[("files", ("rides.zip", io.BytesIO(zip_bytes), "application/zip"))],
+        )
+
+    assert response.status_code == 202
+    data = response.json()
+    assert data["total_files"] == 2
+    assert data["successful"] == 2
+
+    # Both extracted files should have source_file set to the zip filename
+    for upload in data["uploads"]:
+        assert upload["source_file"] == "rides.zip"
+        assert upload["filename"] in ["ride_a.fit", "ride_b.fit"]
+
+
+@pytest.mark.asyncio
+async def test_source_file_set_for_direct_fit_upload(client: AsyncClient) -> None:
+    """Direct .fit upload sets source_file to the .fit filename."""
+    fit_content = _make_valid_fit_bytes()
+
+    with (
+        patch("app.services.import_service.handle_upload", new_callable=AsyncMock) as mock_upload,
+        patch("app.routers.activities._check_rate_limit", return_value=True),
+    ):
+        mock_upload.return_value = (_make_fake_activity(activity_id=1), "task-1")
+        response = await client.post(
+            "/activities/upload",
+            files=[("files", ("my_ride.fit", io.BytesIO(fit_content), "application/octet-stream"))],
+        )
+
+    assert response.status_code == 202
+    data = response.json()
+    assert data["total_files"] == 1
+    assert data["successful"] == 1
+
+    # Direct upload should have source_file set to its own filename
+    assert data["uploads"][0]["source_file"] == "my_ride.fit"
+    assert data["uploads"][0]["filename"] == "my_ride.fit"

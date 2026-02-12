@@ -1,9 +1,18 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { DragEvent } from 'react';
+import Swal from 'sweetalert2';
 import { uploadMultiple } from '../../api/activities.ts';
 import type { FileUploadResult } from '../../api/types.ts';
 import ProcessingStatus from './ProcessingStatus.tsx';
 import './UploadZone.css';
+
+interface ExtractedFileState {
+  filename: string;
+  status: 'processing' | 'done' | 'error';
+  taskId?: string;
+  activityId?: number;
+  error?: string;
+}
 
 interface FileUploadState {
   file: File;
@@ -12,6 +21,7 @@ interface FileUploadState {
   taskId?: string;
   activityId?: number;
   error?: string;
+  children?: ExtractedFileState[];
 }
 
 interface Props {
@@ -43,14 +53,206 @@ function validateFiles(fileList: FileList | File[]): {
   return { valid, rejected };
 }
 
+function statusLabel(status: FileUploadState['status'] | ExtractedFileState['status']): string {
+  switch (status) {
+    case 'waiting':
+      return 'Waiting';
+    case 'uploading':
+      return 'Uploading';
+    case 'processing':
+      return 'Processing';
+    case 'done':
+      return 'Done';
+    case 'error':
+      return 'Error';
+  }
+}
+
+/* ── Child File Item (for ZIP extracted files) ────────────────────────── */
+
+interface ChildFileItemProps {
+  child: ExtractedFileState;
+  childIndex: number;
+  onComplete: (childIdx: number) => void;
+}
+
+function ChildFileItem({ child, childIndex, onComplete }: ChildFileItemProps) {
+  return (
+    <div className="upload-zone__child-item" style={{ marginLeft: '2rem' }}>
+      {child.status === 'processing' && child.taskId ? (
+        <ProcessingStatus
+          taskId={child.taskId}
+          filename={child.filename}
+          onComplete={() => onComplete(childIndex)}
+        />
+      ) : (
+        <>
+          <span className="upload-zone__file-name">{child.filename}</span>
+
+          {child.status === 'done' && (
+            <div className="upload-zone__progress-wrapper">
+              <div
+                className="upload-zone__progress-bar upload-zone__progress-bar--done"
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+
+          {child.status === 'error' && (
+            <div className="upload-zone__progress-wrapper">
+              <div
+                className="upload-zone__progress-bar upload-zone__progress-bar--error"
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+
+          <span
+            className={`upload-zone__file-status upload-zone__file-status--${child.status}`}
+          >
+            {statusLabel(child.status)}
+          </span>
+
+          {child.error && (
+            <div className="upload-zone__error" style={{ marginTop: '0.5rem' }}>
+              {child.error}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── File Item (parent file, may have children for ZIPs) ─────────────── */
+
+interface FileItemProps {
+  fileState: FileUploadState;
+  fileIndex: number;
+  onChildComplete: (childIdx: number) => void;
+  onParentComplete: () => void;
+}
+
+function FileItem({ fileState, fileIndex, onChildComplete, onParentComplete }: FileItemProps) {
+  const fs = fileState;
+  const hasChildren = fs.children && fs.children.length > 0;
+
+  return (
+    <div>
+      <div className="upload-zone__file-item" key={`${fs.file.name}-${fileIndex}`}>
+        {/* If parent has taskId (non-zip processing), show ProcessingStatus */}
+        {!hasChildren && fs.status === 'processing' && fs.taskId ? (
+          <ProcessingStatus
+            taskId={fs.taskId}
+            filename={fs.file.name}
+            onComplete={onParentComplete}
+          />
+        ) : (
+          <>
+            <span className="upload-zone__file-name">{fs.file.name}</span>
+
+            {(fs.status === 'uploading' || fs.status === 'waiting') && (
+              <div className="upload-zone__progress-wrapper">
+                <div
+                  className="upload-zone__progress-bar"
+                  style={{ width: `${fs.progress}%` }}
+                />
+              </div>
+            )}
+
+            {fs.status === 'done' && !hasChildren && (
+              <div className="upload-zone__progress-wrapper">
+                <div
+                  className="upload-zone__progress-bar upload-zone__progress-bar--done"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            )}
+
+            {fs.status === 'error' && !hasChildren && (
+              <div className="upload-zone__progress-wrapper">
+                <div
+                  className="upload-zone__progress-bar upload-zone__progress-bar--error"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            )}
+
+            {!hasChildren && (
+              <span
+                className={`upload-zone__file-status upload-zone__file-status--${fs.status}`}
+              >
+                {statusLabel(fs.status)}
+              </span>
+            )}
+
+            {hasChildren && (
+              <span className="upload-zone__file-status upload-zone__file-status--info">
+                {fs.children!.length} file{fs.children!.length !== 1 ? 's' : ''} extracted
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Render children if this is a ZIP */}
+      {hasChildren &&
+        fs.children!.map((child, cidx) => (
+          <ChildFileItem
+            key={`${child.filename}-${cidx}`}
+            child={child}
+            childIndex={cidx}
+            onComplete={onChildComplete}
+          />
+        ))}
+    </div>
+  );
+}
+
 export default function UploadZone({ onUploadComplete }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<FileUploadState[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [summary, setSummary] = useState('');
+  const [allComplete, setAllComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
+
+  // Monitor all files and children for completion
+  useEffect(() => {
+    if (files.length === 0) {
+      setAllComplete(false);
+      return;
+    }
+
+    const allTerminal = files.every((fs) => {
+      // Check parent status
+      const parentTerminal = fs.status === 'done' || fs.status === 'error';
+
+      // If has children, check all children are terminal
+      if (fs.children && fs.children.length > 0) {
+        const childrenTerminal = fs.children.every(
+          (child) => child.status === 'done' || child.status === 'error',
+        );
+        return parentTerminal && childrenTerminal;
+      }
+
+      return parentTerminal;
+    });
+
+    setAllComplete(allTerminal);
+  }, [files]);
+
+  // Trigger onUploadComplete when all files reach terminal state
+  useEffect(() => {
+    if (allComplete && files.length > 0) {
+      const timer = setTimeout(() => {
+        onUploadComplete();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [allComplete, files.length, onUploadComplete]);
 
   const handleFiles = useCallback(
     async (incoming: File[]) => {
@@ -90,38 +292,69 @@ export default function UploadZone({ onUploadComplete }: Props) {
         // Map results back to file states
         setFiles((prev) =>
           prev.map((fs) => {
-            const result: FileUploadResult | undefined = response.uploads.find(
-              (u) => u.filename === fs.file.name,
-            );
-            if (!result) return { ...fs, status: 'done', progress: 100 };
+            const isZip = getExtension(fs.file.name) === 'zip';
 
-            if (result.error) {
+            if (isZip) {
+              // For ZIP files, collect all results where source_file matches
+              const zipResults = response.uploads.filter(
+                (u) => u.source_file === fs.file.name,
+              );
+
+              if (zipResults.length === 0) {
+                return { ...fs, status: 'done', progress: 100 };
+              }
+
+              // Map each result to an ExtractedFileState
+              const children: ExtractedFileState[] = zipResults.map((r) => ({
+                filename: r.filename,
+                status: r.error ? 'error' : r.task_id ? 'processing' : 'done',
+                taskId: r.task_id ?? undefined,
+                activityId: r.activity_id ?? undefined,
+                error: r.error ?? undefined,
+              }));
+
+              // Determine parent zip status based on children
+              const hasProcessing = children.some((c) => c.status === 'processing');
+              const hasError = children.some((c) => c.status === 'error');
+              const zipStatus = hasProcessing ? 'processing' : hasError ? 'error' : 'done';
+
               return {
                 ...fs,
-                status: 'error',
+                status: zipStatus,
                 progress: 100,
-                error: result.error,
+                children,
+              };
+            } else {
+              // For FIT files, match by source_file or filename
+              const result: FileUploadResult | undefined = response.uploads.find(
+                (u) => u.source_file === fs.file.name || u.filename === fs.file.name,
+              );
+
+              if (!result) return { ...fs, status: 'done', progress: 100 };
+
+              if (result.error) {
+                return {
+                  ...fs,
+                  status: 'error',
+                  progress: 100,
+                  error: result.error,
+                };
+              }
+
+              return {
+                ...fs,
+                status: result.task_id ? 'processing' : 'done',
+                progress: 100,
+                taskId: result.task_id ?? undefined,
+                activityId: result.activity_id ?? undefined,
               };
             }
-
-            return {
-              ...fs,
-              status: result.task_id ? 'processing' : 'done',
-              progress: 100,
-              taskId: result.task_id ?? undefined,
-              activityId: result.activity_id ?? undefined,
-            };
           }),
         );
 
         setSummary(
           `${response.successful} of ${response.total_files} file${response.total_files !== 1 ? 's' : ''} uploaded successfully.`,
         );
-
-        // Refresh activity list after a short delay to allow processing to start
-        setTimeout(() => {
-          onUploadComplete();
-        }, 1500);
       } catch (err: unknown) {
         const message =
           (err as { response?: { data?: { detail?: string } } })?.response?.data
@@ -134,7 +367,17 @@ export default function UploadZone({ onUploadComplete }: Props) {
             error: message,
           })),
         );
-        setError(message);
+
+        // Show upload-level error as toast
+        Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: message,
+          toast: true,
+          position: 'top-end',
+          timer: 5000,
+          showConfirmButton: false,
+        });
       } finally {
         setUploading(false);
         if (fileInputRef.current) {
@@ -206,23 +449,6 @@ export default function UploadZone({ onUploadComplete }: Props) {
     }
   }
 
-  /* ── Status labels ────────────────────────────────────────────────── */
-
-  function statusLabel(status: FileUploadState['status']): string {
-    switch (status) {
-      case 'waiting':
-        return 'Waiting';
-      case 'uploading':
-        return 'Uploading';
-      case 'processing':
-        return 'Processing';
-      case 'done':
-        return 'Done';
-      case 'error':
-        return 'Error';
-    }
-  }
-
   /* ── Render ───────────────────────────────────────────────────────── */
 
   const zoneClasses = [
@@ -282,60 +508,31 @@ export default function UploadZone({ onUploadComplete }: Props) {
       {files.length > 0 && (
         <div className="upload-zone__file-list" onClick={(e) => e.stopPropagation()}>
           {files.map((fs, idx) => (
-            <div className="upload-zone__file-item" key={`${fs.file.name}-${idx}`}>
-              {/* Show ProcessingStatus for files being processed by backend */}
-              {fs.status === 'processing' && fs.taskId ? (
-                <ProcessingStatus
-                  taskId={fs.taskId}
-                  filename={fs.file.name}
-                  onComplete={() => {
-                    setFiles((prev) =>
-                      prev.map((f, i) =>
-                        i === idx ? { ...f, status: 'done' } : f,
-                      ),
+            <FileItem
+              key={`${fs.file.name}-${idx}`}
+              fileState={fs}
+              fileIndex={idx}
+              onChildComplete={(childIdx) => {
+                setFiles((prev) =>
+                  prev.map((f, i) => {
+                    if (i !== idx || !f.children) return f;
+                    const updatedChildren = f.children.map((c, ci) =>
+                      ci === childIdx ? { ...c, status: 'done' as const } : c,
                     );
-                    onUploadComplete();
-                  }}
-                />
-              ) : (
-                <>
-                  <span className="upload-zone__file-name">{fs.file.name}</span>
-
-                  {(fs.status === 'uploading' || fs.status === 'waiting') && (
-                    <div className="upload-zone__progress-wrapper">
-                      <div
-                        className="upload-zone__progress-bar"
-                        style={{ width: `${fs.progress}%` }}
-                      />
-                    </div>
-                  )}
-
-                  {fs.status === 'done' && (
-                    <div className="upload-zone__progress-wrapper">
-                      <div
-                        className="upload-zone__progress-bar upload-zone__progress-bar--done"
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                  )}
-
-                  {fs.status === 'error' && (
-                    <div className="upload-zone__progress-wrapper">
-                      <div
-                        className="upload-zone__progress-bar upload-zone__progress-bar--error"
-                        style={{ width: '100%' }}
-                      />
-                    </div>
-                  )}
-
-                  <span
-                    className={`upload-zone__file-status upload-zone__file-status--${fs.status}`}
-                  >
-                    {statusLabel(fs.status)}
-                  </span>
-                </>
-              )}
-            </div>
+                    // Update parent status based on children
+                    const hasProcessing = updatedChildren.some((c) => c.status === 'processing');
+                    const hasError = updatedChildren.some((c) => c.status === 'error');
+                    const parentStatus = hasProcessing ? 'processing' : hasError ? 'error' : 'done';
+                    return { ...f, children: updatedChildren, status: parentStatus };
+                  }),
+                );
+              }}
+              onParentComplete={() => {
+                setFiles((prev) =>
+                  prev.map((f, i) => (i === idx ? { ...f, status: 'done' } : f)),
+                );
+              }}
+            />
           ))}
 
           {files.some((fs) => fs.status === 'error' && fs.error) &&

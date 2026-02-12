@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import type { Activity, StreamSummaryResponse } from '../api/types.ts';
 import client from '../api/client.ts';
 import { getStreamSummary } from '../api/streams.ts';
@@ -67,7 +68,16 @@ export default function ActivityDetailPage() {
 
   async function handleDelete() {
     if (!id) return;
-    if (!confirm('Delete this activity? This cannot be undone.')) return;
+    const result = await Swal.fire({
+      title: 'Delete Activity?',
+      text: 'This cannot be undone.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+    });
+    if (!result.isConfirmed) return;
     try {
       await client.delete(`/activities/${id}`);
       navigate('/activities');
@@ -78,7 +88,15 @@ export default function ActivityDetailPage() {
 
   async function handleReprocess() {
     if (!id) return;
-    if (!confirm('Reprocess this activity? This will re-parse the original FIT file and rebuild all streams and laps.')) return;
+    const result = await Swal.fire({
+      title: 'Reprocess Activity?',
+      text: 'This will re-parse the original FIT file and rebuild all streams and laps.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Reprocess',
+      cancelButtonText: 'Cancel',
+    });
+    if (!result.isConfirmed) return;
     setReprocessing(true);
     setError('');
     try {

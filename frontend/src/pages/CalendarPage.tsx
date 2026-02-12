@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useInfiniteCalendar } from '../hooks/useInfiniteCalendar.ts';
@@ -13,19 +13,23 @@ export default function CalendarPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomSentinelRef = useRef<HTMLDivElement>(null);
+  const prevScrollHeightRef = useRef<number>(0);
 
   // IntersectionObserver for loading older months (top sentinel)
   useEffect(() => {
     const topSentinel = topSentinelRef.current;
-    if (!topSentinel) return;
+    const container = scrollContainerRef.current;
+    if (!topSentinel || !container) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
+          // Store scroll height BEFORE adding new content at the top
+          prevScrollHeightRef.current = container.scrollHeight;
           loadOlder();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, root: container }
     );
 
     observer.observe(topSentinel);
@@ -35,7 +39,8 @@ export default function CalendarPage() {
   // IntersectionObserver for loading newer months (bottom sentinel)
   useEffect(() => {
     const bottomSentinel = bottomSentinelRef.current;
-    if (!bottomSentinel) return;
+    const container = scrollContainerRef.current;
+    if (!bottomSentinel || !container) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -43,7 +48,7 @@ export default function CalendarPage() {
           loadNewer();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, root: container }
     );
 
     observer.observe(bottomSentinel);
@@ -77,6 +82,24 @@ export default function CalendarPage() {
     headers.forEach((header) => observer.observe(header));
     return () => observer.disconnect();
   }, [months, setActiveMonth]);
+
+  // Preserve scroll position when prepending older months
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || months.length === 0) return;
+
+    const firstMonthKey = `${months[0].year}-${String(months[0].month).padStart(2, '0')}`;
+
+    // When the first month changes (new month prepended), adjust scroll position
+    if (prevScrollHeightRef.current > 0) {
+      const newScrollHeight = container.scrollHeight;
+      const delta = newScrollHeight - prevScrollHeightRef.current;
+      if (delta > 0) {
+        container.scrollTop += delta;
+      }
+      prevScrollHeightRef.current = 0;
+    }
+  }, [months.length > 0 ? `${months[0].year}-${months[0].month}` : '']);
 
   const handleDayClick = useCallback((dateStr: string) => {
     navigate(`/activities?date=${dateStr}`);

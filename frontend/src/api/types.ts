@@ -345,6 +345,7 @@ export interface FileUploadResult {
   activity_id: number | null;
   task_id: string | null;
   error: string | null;
+  source_file: string | null;
 }
 
 export interface MultiUploadResponse {

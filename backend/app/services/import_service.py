@@ -193,14 +193,14 @@ async def handle_zip_upload(
         # Reject nested zips
         if lower_name.endswith(".zip"):
             results.append(
-                FileUploadResult(filename=entry_name, error="Nested zip files are not allowed.")
+                FileUploadResult(filename=entry_name, error="Nested zip files are not allowed.", source_file=zip_filename)
             )
             continue
 
         # Only process .fit files
         if not lower_name.endswith(".fit"):
             results.append(
-                FileUploadResult(filename=entry_name, error="Unsupported file type. Expected .fit file.")
+                FileUploadResult(filename=entry_name, error="Unsupported file type. Expected .fit file.", source_file=zip_filename)
             )
             continue
 
@@ -211,6 +211,7 @@ async def handle_zip_upload(
                 FileUploadResult(
                     filename=entry_name,
                     error="Compression ratio exceeds safety limit (10:1). Skipped.",
+                    source_file=zip_filename,
                 )
             )
             continue
@@ -228,13 +229,13 @@ async def handle_zip_upload(
                         raise ValueError("Extracted file exceeds 50 MB size limit.")
             content_bytes = bytes(extracted)
         except ValueError as exc:
-            results.append(FileUploadResult(filename=entry_name, error=str(exc)))
+            results.append(FileUploadResult(filename=entry_name, error=str(exc), source_file=zip_filename))
             continue
 
         # Validate FIT magic
         if not _validate_fit_magic_bytes(content_bytes):
             results.append(
-                FileUploadResult(filename=entry_name, error="Invalid FIT file (bad magic bytes).")
+                FileUploadResult(filename=entry_name, error="Invalid FIT file (bad magic bytes).", source_file=zip_filename)
             )
             continue
 
@@ -251,6 +252,7 @@ async def handle_zip_upload(
                     filename=entry_name,
                     activity_id=activity.id,
                     task_id=task_id,
+                    source_file=zip_filename,
                 )
             )
         except DuplicateFileError as exc:
@@ -258,12 +260,13 @@ async def handle_zip_upload(
                 FileUploadResult(
                     filename=entry_name,
                     error=f"Duplicate file. Already imported as activity {exc.existing_activity_id}.",
+                    source_file=zip_filename,
                 )
             )
         except Exception as exc:
             logger.error("zip_entry_processing_failed", entry=entry_name, error=str(exc))
             results.append(
-                FileUploadResult(filename=entry_name, error=f"Processing failed: {exc}")
+                FileUploadResult(filename=entry_name, error=f"Processing failed: {exc}", source_file=zip_filename)
             )
 
     zf.close()
@@ -298,6 +301,7 @@ async def handle_multi_upload(
                 FileUploadResult(
                     filename=filename,
                     error=f"File too large. Maximum size is {ZIP_MAX_EXTRACTED_SIZE // (1024 * 1024)} MB.",
+                    source_file=filename,
                 )
             )
             continue
@@ -309,7 +313,7 @@ async def handle_multi_upload(
             # Validate FIT magic
             if not _validate_fit_magic_bytes(content):
                 results.append(
-                    FileUploadResult(filename=filename, error="Invalid FIT file (bad magic bytes).")
+                    FileUploadResult(filename=filename, error="Invalid FIT file (bad magic bytes).", source_file=filename)
                 )
                 continue
 
@@ -326,6 +330,7 @@ async def handle_multi_upload(
                         filename=filename,
                         activity_id=activity.id,
                         task_id=task_id,
+                        source_file=filename,
                     )
                 )
             except DuplicateFileError as exc:
@@ -333,18 +338,20 @@ async def handle_multi_upload(
                     FileUploadResult(
                         filename=filename,
                         error=f"Duplicate file. Already imported as activity {exc.existing_activity_id}.",
+                        source_file=filename,
                     )
                 )
             except Exception as exc:
                 logger.error("file_processing_failed", filename=filename, error=str(exc))
                 results.append(
-                    FileUploadResult(filename=filename, error=f"Processing failed: {exc}")
+                    FileUploadResult(filename=filename, error=f"Processing failed: {exc}", source_file=filename)
                 )
         else:
             results.append(
                 FileUploadResult(
                     filename=filename,
                     error="Unsupported file type. Expected .fit or .zip file.",
+                    source_file=filename,
                 )
             )
 

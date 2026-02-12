@@ -40,6 +40,6 @@
 }
 
 .calendar-sentinel {
-  height: 1px;
-  visibility: hidden;
+  height: 20px;
+  pointer-events: none;
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import {
   getStravaAuthUrl,
   getStravaStatus,
@@ -82,9 +83,16 @@ export default function StravaConnect() {
   }
 
   async function handleDisconnect() {
-    if (!window.confirm('Disconnect Strava? Your imported activities will be kept.')) {
-      return;
-    }
+    const result = await Swal.fire({
+      title: 'Disconnect Strava?',
+      text: 'Your imported activities will be kept.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Disconnect',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+    });
+    if (!result.isConfirmed) return;
     try {
       await disconnectStrava();
       setStatus(null);
