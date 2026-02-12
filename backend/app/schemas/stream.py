@@ -3,7 +3,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StreamDataPoint(BaseModel):
@@ -76,3 +76,21 @@ class StreamSummaryResponse(BaseModel):
     cadence: list[int | None]
     speed_mps: list[Decimal | None]
     altitude_meters: list[Decimal | None]
+
+
+class ZoneBlock(BaseModel):
+    """A 30-second block classified into a power zone."""
+
+    start_seconds: int = Field(..., description="Start time in seconds from activity start")
+    end_seconds: int = Field(..., description="End time in seconds from activity start")
+    zone: int = Field(..., ge=1, le=7, description="Power zone (1-7)")
+    avg_power: Decimal = Field(..., description="Average power in watts for this block")
+
+
+class ZoneBlocksResponse(BaseModel):
+    """Pre-computed 30-second zone blocks for an activity."""
+
+    activity_id: int
+    ftp: int = Field(..., description="FTP used for zone calculation")
+    blocks: list[ZoneBlock] = Field(default_factory=list)
+    total_blocks: int = Field(0, description="Total number of blocks")

@@ -197,6 +197,95 @@ export interface ThresholdResponse {
   created_at: string;
 }
 
+// ── Zone Blocks ──────────────────────────────────────────────────────
+
+export interface ZoneBlock {
+  start_seconds: number;
+  end_seconds: number;
+  zone: number;
+  avg_power: number;
+}
+
+export interface ZoneBlocksResponse {
+  activity_id: number;
+  ftp: number;
+  blocks: ZoneBlock[];
+  total_blocks: number;
+}
+
+// ── Power Analysis ───────────────────────────────────────────────────
+
+export interface PowerDistributionBin {
+  bin_start: number;
+  bin_end: number;
+  count: number;
+  zone: number;
+}
+
+export interface PeakEffort {
+  duration_seconds: number;
+  duration_label: string;
+  power_watts: number | null;
+  power_wpkg: number | null;
+}
+
+export interface PowerAnalysisStats {
+  normalized_power: number | null;
+  avg_power: number | null;
+  max_power: number | null;
+  variability_index: number | null;
+  intensity_factor: number | null;
+  tss: number | null;
+  work_kj: number | null;
+  watts_per_kg: number | null;
+}
+
+export interface PowerAnalysisResponse {
+  activity_id: number;
+  ftp: number;
+  weight_kg: number | null;
+  distribution: PowerDistributionBin[];
+  peak_efforts: PeakEffort[];
+  stats: PowerAnalysisStats;
+}
+
+// ── HR Analysis ──────────────────────────────────────────────────────
+
+export interface HRDistributionBin {
+  bin_start: number;
+  bin_end: number;
+  count: number;
+}
+
+export interface HRZoneTime {
+  zone: number;
+  name: string;
+  min_hr: number;
+  max_hr: number;
+  seconds: number;
+}
+
+export interface HRAnalysisResponse {
+  activity_id: number;
+  max_hr_setting: number;
+  avg_hr: number | null;
+  max_hr: number | null;
+  min_hr: number | null;
+  distribution: HRDistributionBin[];
+  time_in_zones: HRZoneTime[];
+}
+
+// ── Route ────────────────────────────────────────────────────────────
+
+export interface RouteGeoJSON {
+  type: string;
+  geometry: {
+    type: string;
+    coordinates: [number, number][] | [number, number, number][];
+  };
+  properties: Record<string, unknown>;
+}
+
 // ── Task ──────────────────────────────────────────────────────────────
 
 export interface TaskStatus {

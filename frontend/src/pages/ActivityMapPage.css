@@ -1,0 +1,14 @@
+.activity-map-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.map-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.elevation-card {
+  padding: var(--space-lg);
+}

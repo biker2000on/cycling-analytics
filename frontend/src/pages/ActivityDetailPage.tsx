@@ -6,8 +6,20 @@ import { getStreamSummary } from '../api/streams.ts';
 import { getCurrentFtp } from '../api/metrics.ts';
 import ActivityHeader from '../components/activities/ActivityHeader.tsx';
 import ActivityStats from '../components/activities/ActivityStats.tsx';
-import TimelineChart from '../components/charts/TimelineChart.tsx';
+import ZoneShadedTimeline from '../components/charts/ZoneShadedTimeline.tsx';
+import ActivityPowerPage from './ActivityPowerPage.tsx';
+import ActivityHRPage from './ActivityHRPage.tsx';
+import ActivityMapPage from './ActivityMapPage.tsx';
 import './ActivityDetailPage.css';
+
+type TabKey = 'overview' | 'power' | 'hr' | 'map';
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'power', label: 'Power' },
+  { key: 'hr', label: 'Heart Rate' },
+  { key: 'map', label: 'Map' },
+];
 
 export default function ActivityDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +30,7 @@ export default function ActivityDetailPage() {
   const [ftp, setFtp] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -80,20 +93,54 @@ export default function ActivityDetailPage() {
     );
   }
 
+  const activityId = Number(id);
+
   return (
     <div className="activity-detail-page">
       <ActivityHeader activity={activity} onDelete={handleDelete} />
       <ActivityStats activity={activity} ftp={ftp} />
 
-      {stream && stream.point_count > 0 ? (
-        <TimelineChart stream={stream} ftp={ftp} />
-      ) : (
-        <div className="card" style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
-          <p style={{ color: 'var(--color-text-secondary)' }}>
-            No stream data available for this activity.
-          </p>
-        </div>
-      )}
+      {/* Tab Navigation */}
+      <div className="activity-tabs">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            className={`activity-tab ${activeTab === tab.key ? 'activity-tab-active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="activity-tab-content">
+        {activeTab === 'overview' && (
+          <>
+            {stream && stream.point_count > 0 ? (
+              <ZoneShadedTimeline stream={stream} ftp={ftp} activityId={activityId} />
+            ) : (
+              <div className="card" style={{ padding: 'var(--space-xl)', textAlign: 'center' }}>
+                <p style={{ color: 'var(--color-text-secondary)' }}>
+                  No stream data available for this activity.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'power' && (
+          <ActivityPowerPage activityId={activityId} ftp={ftp} />
+        )}
+
+        {activeTab === 'hr' && (
+          <ActivityHRPage activityId={activityId} />
+        )}
+
+        {activeTab === 'map' && (
+          <ActivityMapPage activityId={activityId} stream={stream} />
+        )}
+      </div>
     </div>
   );
 }

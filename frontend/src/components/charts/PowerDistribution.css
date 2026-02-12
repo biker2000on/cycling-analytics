@@ -1,0 +1,10 @@
+.power-distribution {
+  margin-bottom: var(--space-lg);
+}
+
+.chart-subtitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
+}

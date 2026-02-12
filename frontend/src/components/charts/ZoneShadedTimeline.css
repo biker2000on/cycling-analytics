@@ -1,0 +1,9 @@
+.zone-shaded-timeline {
+  padding: var(--space-lg);
+}
+
+.zone-shaded-timeline .chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}

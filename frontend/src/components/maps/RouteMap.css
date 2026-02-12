@@ -1,0 +1,21 @@
+/* Leaflet CSS must be imported for proper rendering */
+@import 'leaflet/dist/leaflet.css';
+
+.route-map-container {
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.route-map {
+  width: 100%;
+  height: 450px;
+  z-index: 0;
+}
+
+@media (max-width: 768px) {
+  .route-map {
+    height: 300px;
+  }
+}

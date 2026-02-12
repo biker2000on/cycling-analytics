@@ -1,4 +1,4 @@
-"""Activity stream endpoints — full data and downsampled summaries."""
+"""Activity stream endpoints — full data, downsampled summaries, and zone blocks."""
 
 from typing import Annotated
 
@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user_or_default, get_db
 from app.models.activity import Activity
 from app.models.user import User
-from app.schemas.stream import StreamResponse, StreamSummaryResponse
+from app.schemas.stream import StreamResponse, StreamSummaryResponse, ZoneBlocksResponse
+from app.services.power_analysis_service import get_zone_blocks
 from app.services.stream_service import get_activity_streams, get_activity_streams_summary
 
 logger = structlog.get_logger(__name__)
@@ -67,3 +68,19 @@ async def get_streams_summary(
     """Return LTTB-downsampled stream data for efficient chart rendering."""
     await _get_validated_activity(activity_id, db, current_user.id)
     return await get_activity_streams_summary(activity_id, points, db)
+
+
+@router.get(
+    "/{activity_id}/streams/zones",
+    response_model=ZoneBlocksResponse,
+    summary="Get pre-computed 30-second zone blocks",
+)
+async def get_streams_zones(
+    activity_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    ftp: int = Query(..., gt=0, description="Functional Threshold Power in watts"),
+) -> ZoneBlocksResponse:
+    """Return 30-second power zone blocks for timeline shading."""
+    await _get_validated_activity(activity_id, db, current_user.id)
+    return await get_zone_blocks(activity_id, ftp, db)

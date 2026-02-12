@@ -1,4 +1,5 @@
-"""Metrics endpoints — fitness (CTL/ATL/TSB), activity metrics, period summary."""
+"""Metrics endpoints — fitness (CTL/ATL/TSB), activity metrics, period summary,
+power analysis, and HR analysis."""
 
 from datetime import date, timedelta
 from decimal import Decimal
@@ -19,7 +20,9 @@ from app.schemas.metrics import (
     ActivityMetricsResponse,
     FitnessDataPoint,
     FitnessTimeSeries,
+    HRAnalysisResponse,
     PeriodSummary,
+    PowerAnalysisResponse,
 )
 from app.services.cache_service import (
     CacheService,
@@ -27,6 +30,7 @@ from app.services.cache_service import (
     metrics_cache_key,
     summary_cache_key,
 )
+from app.services.power_analysis_service import get_hr_analysis, get_power_analysis
 
 logger = structlog.get_logger(__name__)
 
@@ -270,3 +274,94 @@ async def get_period_summary(
         await cache.close()
 
     return response
+
+
+# ---------------------------------------------------------------------------
+# Power Analysis (Plan 7.2)
+# ---------------------------------------------------------------------------
+
+
+async def _get_activity_for_analysis(
+    activity_id: int,
+    db: AsyncSession,
+    user_id: int,
+) -> Activity:
+    """Fetch activity for analysis, raising 404 if not found or not owned."""
+    stmt = select(Activity).where(
+        Activity.id == activity_id,
+        Activity.user_id == user_id,
+    )
+    result = await db.execute(stmt)
+    activity = result.scalar_one_or_none()
+    if activity is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Activity {activity_id} not found.",
+        )
+    return activity
+
+
+@router.get(
+    "/activities/{activity_id}/power-analysis",
+    response_model=PowerAnalysisResponse,
+    summary="Get power analysis for an activity",
+)
+async def get_activity_power_analysis(
+    activity_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    ftp: int = Query(default=0, ge=0, description="FTP in watts (0 = use profile FTP)"),
+) -> PowerAnalysisResponse:
+    """Return power distribution, peak efforts, and advanced stats for an activity.
+
+    If ftp=0, attempts to use the user's profile FTP.
+    """
+    activity = await _get_activity_for_analysis(activity_id, db, current_user.id)
+
+    # Determine FTP
+    effective_ftp = ftp
+    if effective_ftp <= 0:
+        # Try to get from user settings
+        from app.models.user_settings import UserSettings
+
+        settings_stmt = select(UserSettings).where(UserSettings.user_id == current_user.id)
+        settings_result = await db.execute(settings_stmt)
+        user_settings = settings_result.scalar_one_or_none()
+        if user_settings and user_settings.ftp_watts:
+            effective_ftp = int(user_settings.ftp_watts)
+        else:
+            effective_ftp = 200  # sensible default
+
+    # Get weight from user settings
+    weight_kg: float | None = None
+    if hasattr(current_user, "weight_kg") and current_user.weight_kg:
+        weight_kg = float(current_user.weight_kg)
+
+    return await get_power_analysis(
+        activity_id,
+        effective_ftp,
+        db,
+        weight_kg=weight_kg,
+        duration_seconds=activity.duration_seconds,
+    )
+
+
+# ---------------------------------------------------------------------------
+# HR Analysis (Plan 7.3)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/activities/{activity_id}/hr-analysis",
+    response_model=HRAnalysisResponse,
+    summary="Get HR analysis for an activity",
+)
+async def get_activity_hr_analysis(
+    activity_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    max_hr: int = Query(default=190, gt=0, le=250, description="Max HR for zone calculation"),
+) -> HRAnalysisResponse:
+    """Return HR distribution, time-in-zones, and HR stats for an activity."""
+    await _get_activity_for_analysis(activity_id, db, current_user.id)
+    return await get_hr_analysis(activity_id, max_hr, db)

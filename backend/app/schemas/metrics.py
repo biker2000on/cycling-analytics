@@ -96,3 +96,85 @@ class PeriodSummary(BaseModel):
     )
     start_date: date
     end_date: date
+
+
+# ---------------------------------------------------------------------------
+# Power Analysis (Plan 7.2)
+# ---------------------------------------------------------------------------
+
+
+class PowerDistributionBin(BaseModel):
+    """A single 10-watt bin in the power distribution histogram."""
+
+    bin_start: int = Field(..., description="Lower bound of the 10W bin")
+    bin_end: int = Field(..., description="Upper bound of the 10W bin")
+    count: int = Field(..., description="Number of seconds in this bin")
+    zone: int = Field(..., ge=1, le=7, description="Power zone for this bin")
+
+
+class PeakEffort(BaseModel):
+    """Best average power for a given duration."""
+
+    duration_seconds: int = Field(..., description="Duration in seconds")
+    duration_label: str = Field(..., description="Human-readable label (e.g. '5 min')")
+    power_watts: Decimal | None = Field(None, description="Best average power")
+    power_wpkg: Decimal | None = Field(None, description="Best power in W/kg")
+
+
+class PowerAnalysisStats(BaseModel):
+    """Advanced power statistics for an activity."""
+
+    normalized_power: Decimal | None = None
+    avg_power: Decimal | None = None
+    max_power: int | None = None
+    variability_index: Decimal | None = None
+    intensity_factor: Decimal | None = None
+    tss: Decimal | None = None
+    work_kj: Decimal | None = None
+    watts_per_kg: Decimal | None = None
+
+
+class PowerAnalysisResponse(BaseModel):
+    """Full power analysis for an activity."""
+
+    activity_id: int
+    ftp: int
+    weight_kg: Decimal | None = None
+    distribution: list[PowerDistributionBin] = Field(default_factory=list)
+    peak_efforts: list[PeakEffort] = Field(default_factory=list)
+    stats: PowerAnalysisStats = Field(default_factory=PowerAnalysisStats)
+
+
+# ---------------------------------------------------------------------------
+# HR Analysis (Plan 7.3)
+# ---------------------------------------------------------------------------
+
+
+class HRDistributionBin(BaseModel):
+    """A single 5-bpm bin in the HR distribution histogram."""
+
+    bin_start: int = Field(..., description="Lower bound of the 5 bpm bin")
+    bin_end: int = Field(..., description="Upper bound of the 5 bpm bin")
+    count: int = Field(..., description="Number of seconds in this bin")
+
+
+class HRZoneTime(BaseModel):
+    """Time spent in a single HR zone."""
+
+    zone: int = Field(..., ge=1, le=5, description="HR zone (1-5)")
+    name: str = Field(..., description="Zone name")
+    min_hr: int = Field(..., description="Lower HR bound")
+    max_hr: int = Field(..., description="Upper HR bound")
+    seconds: int = Field(..., description="Seconds in this zone")
+
+
+class HRAnalysisResponse(BaseModel):
+    """Full HR analysis for an activity."""
+
+    activity_id: int
+    max_hr_setting: int = Field(..., description="Max HR used for zone calculation")
+    avg_hr: int | None = None
+    max_hr: int | None = None
+    min_hr: int | None = None
+    distribution: list[HRDistributionBin] = Field(default_factory=list)
+    time_in_zones: list[HRZoneTime] = Field(default_factory=list)

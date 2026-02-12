@@ -1,0 +1,35 @@
+.peak-efforts {
+  margin-bottom: var(--space-lg);
+}
+
+.peak-efforts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.peak-efforts-table th {
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.peak-efforts-table td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.peak-efforts-table .peak-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.peak-efforts-table tbody tr:hover {
+  background: var(--color-bg-hover);
+}

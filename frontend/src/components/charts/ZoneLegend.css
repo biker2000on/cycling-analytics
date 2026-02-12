@@ -1,0 +1,30 @@
+.zone-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  padding: var(--space-sm) 0;
+}
+
+.zone-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.75rem;
+}
+
+.zone-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.zone-legend-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.zone-legend-range {
+  color: var(--color-text-secondary);
+}

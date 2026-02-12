@@ -1,3 +1,38 @@
 .activity-detail-page {
   max-width: 1200px;
 }
+
+/* Tab Navigation */
+.activity-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-lg);
+}
+
+.activity-tab {
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.activity-tab:hover {
+  color: var(--color-text);
+}
+
+.activity-tab-active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.activity-tab-content {
+  min-height: 200px;
+}

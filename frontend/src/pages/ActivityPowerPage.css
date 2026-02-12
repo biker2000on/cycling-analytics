@@ -1,0 +1,71 @@
+.activity-power-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.power-stats-card {
+  padding: var(--space-lg);
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+
+.power-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.power-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-sm);
+}
+
+.power-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-xs);
+}
+
+.power-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.power-stat-unit {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-left: 2px;
+}
+
+.power-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.power-chart-card {
+  padding: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .power-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .power-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}

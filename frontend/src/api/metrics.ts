@@ -2,7 +2,9 @@ import client from './client.ts';
 import type {
   ActivityMetricsResponse,
   FitnessTimeSeries,
+  HRAnalysisResponse,
   PeriodSummary,
+  PowerAnalysisResponse,
   FtpResponse,
 } from './types.ts';
 
@@ -44,5 +46,27 @@ export async function getMetricsSummary(
 
 export async function getCurrentFtp(): Promise<FtpResponse> {
   const { data } = await client.get<FtpResponse>('/settings/ftp');
+  return data;
+}
+
+export async function getPowerAnalysis(
+  activityId: number,
+  ftp = 0,
+): Promise<PowerAnalysisResponse> {
+  const { data } = await client.get<PowerAnalysisResponse>(
+    `/metrics/activities/${activityId}/power-analysis`,
+    { params: { ftp } },
+  );
+  return data;
+}
+
+export async function getHRAnalysis(
+  activityId: number,
+  maxHR = 190,
+): Promise<HRAnalysisResponse> {
+  const { data } = await client.get<HRAnalysisResponse>(
+    `/metrics/activities/${activityId}/hr-analysis`,
+    { params: { max_hr: maxHR } },
+  );
   return data;
 }
