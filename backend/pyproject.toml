@@ -1,0 +1,54 @@
+[project]
+name = "cycling-analytics"
+version = "0.1.0"
+description = "Cycling analytics platform — power, fitness, and performance tracking"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "psycopg2-binary",
+    "alembic",
+    "pydantic-settings",
+    "numpy",
+    "pandas",
+    "scipy",
+    "fitparse",
+    "celery",
+    "redis",
+    "python-multipart",
+    "aiofiles",
+    "structlog",
+    "geoalchemy2",
+    "garminconnect",
+    "cryptography",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+    "mypy",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
