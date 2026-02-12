@@ -257,7 +257,7 @@ def _extract_device_name(
         vals = _msg_values(msg)
         device_index = vals.get("device_index")
         # device_index 0 is typically the recording device
-        if device_index is not None and int(device_index) != 0:
+        if device_index is not None and str(device_index) != "0" and str(device_index) != "creator":
             continue
         manufacturer = vals.get("manufacturer")
         product_name = vals.get("product_name") or vals.get("garmin_product")
