@@ -7,6 +7,7 @@ from app.models.health_metric import HealthMetric, MetricType
 from app.models.import_batch import ImportBatch, ImportBatchStatus
 from app.models.integration import Integration, IntegrationProvider, IntegrationStatus
 from app.models.user import User
+from app.models.user_settings import UserSettings
 
 __all__ = [
     "Activity",
@@ -22,4 +23,5 @@ __all__ = [
     "MetricType",
     "ProcessingStatus",
     "User",
+    "UserSettings",
 ]

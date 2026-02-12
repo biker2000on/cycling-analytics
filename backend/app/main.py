@@ -8,7 +8,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import activities, health, imports, integrations, routes, streams, tasks
+from app.routers import (
+    activities,
+    health,
+    imports,
+    integrations,
+    routes,
+    settings as settings_router,
+    streams,
+    tasks,
+)
 
 structlog.configure(
     processors=[
@@ -62,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(integrations.router)
     app.include_router(streams.router)
     app.include_router(routes.router)
+    app.include_router(settings_router.router)
 
     return app
 
