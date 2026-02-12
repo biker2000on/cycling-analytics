@@ -1,0 +1,36 @@
+.totals-bar-chart {
+  width: 100%;
+}
+
+.totals-metric-toggle {
+  display: flex;
+  gap: 2px;
+  margin-bottom: var(--space-md);
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  width: fit-content;
+}
+
+.totals-metric-btn {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.totals-metric-btn:hover {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+.totals-metric-btn-active {
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}

@@ -1,0 +1,12 @@
+.calendar-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.calendar-card {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}

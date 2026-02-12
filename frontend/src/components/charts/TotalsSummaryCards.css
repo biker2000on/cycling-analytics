@@ -1,0 +1,35 @@
+.totals-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.totals-card {
+  text-align: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.totals-card-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.totals-card-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .totals-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

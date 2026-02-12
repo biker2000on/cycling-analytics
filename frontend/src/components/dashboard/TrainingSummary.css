@@ -1,0 +1,33 @@
+.training-summary {
+  padding: var(--space-lg);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.summary-stat {
+  text-align: center;
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.summary-stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.summary-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}

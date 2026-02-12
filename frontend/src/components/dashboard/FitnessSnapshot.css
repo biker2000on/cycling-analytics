@@ -1,0 +1,72 @@
+.fitness-snapshot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.fitness-snapshot-empty {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: var(--space-md);
+}
+
+.snapshot-card {
+  padding: var(--space-md) var(--space-lg);
+  text-align: center;
+}
+
+.snapshot-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
+}
+
+.snapshot-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.snapshot-ctl {
+  color: var(--color-power);
+}
+
+.snapshot-atl {
+  color: var(--color-hr);
+}
+
+.snapshot-tsb-positive {
+  color: var(--color-cadence);
+}
+
+.snapshot-tsb-negative {
+  color: var(--color-danger);
+}
+
+.snapshot-trend {
+  font-size: 0.75rem;
+}
+
+.snapshot-trend-up {
+  color: var(--color-cadence);
+}
+
+.snapshot-trend-down {
+  color: var(--color-danger);
+}
+
+.snapshot-trend-flat {
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 600px) {
+  .fitness-snapshot {
+    grid-template-columns: 1fr;
+  }
+}

@@ -23,6 +23,15 @@ export default function Layout() {
           <NavLink to="/activities" className={navClass}>
             Activities
           </NavLink>
+          <NavLink to="/calendar" className={navClass}>
+            Calendar
+          </NavLink>
+          <NavLink to="/power-curve" className={navClass}>
+            Power Curve
+          </NavLink>
+          <NavLink to="/totals" className={navClass}>
+            Totals
+          </NavLink>
           <NavLink to="/settings" className={navClass}>
             Settings
           </NavLink>

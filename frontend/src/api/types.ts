@@ -286,6 +286,56 @@ export interface RouteGeoJSON {
   properties: Record<string, unknown>;
 }
 
+// ── Power Curve ─────────────────────────────────────────────────────
+
+export interface PowerCurvePoint {
+  duration_seconds: number;
+  power_watts: number;
+  activity_id: number;
+  activity_date: string;
+}
+
+export interface PowerCurveResponse {
+  data: PowerCurvePoint[];
+  start_date: string;
+  end_date: string;
+}
+
+// ── Calendar ────────────────────────────────────────────────────────
+
+export interface CalendarDay {
+  date: string;
+  activity_count: number;
+  total_tss: number;
+  total_duration_seconds: number;
+  total_distance_meters: number;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  days: CalendarDay[];
+}
+
+// ── Totals ──────────────────────────────────────────────────────────
+
+export interface TotalsPeriod {
+  period_label: string;
+  period_start: string;
+  period_end: string;
+  ride_count: number;
+  total_tss: number;
+  total_duration_seconds: number;
+  total_distance_meters: number;
+}
+
+export interface TotalsResponse {
+  periods: TotalsPeriod[];
+  period_type: string;
+  start_date: string;
+  end_date: string;
+}
+
 // ── Task ──────────────────────────────────────────────────────────────
 
 export interface TaskStatus {

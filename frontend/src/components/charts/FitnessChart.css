@@ -1,0 +1,8 @@
+.fitness-chart {
+  width: 100%;
+}
+
+.fitness-chart .recharts-legend-item-text {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}

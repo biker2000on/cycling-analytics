@@ -1,0 +1,26 @@
+.power-curve-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.power-curve-controls {
+  padding: var(--space-md) var(--space-lg);
+}
+
+.power-curve-chart-card {
+  padding: var(--space-lg);
+}
+
+.power-curve-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  color: var(--color-text);
+}
+
+.power-curve-description {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}

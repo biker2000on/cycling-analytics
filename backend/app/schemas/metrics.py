@@ -178,3 +178,74 @@ class HRAnalysisResponse(BaseModel):
     min_hr: int | None = None
     distribution: list[HRDistributionBin] = Field(default_factory=list)
     time_in_zones: list[HRZoneTime] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Power Curve (Plan 8.2)
+# ---------------------------------------------------------------------------
+
+
+class PowerCurvePoint(BaseModel):
+    """Single point on the power duration curve."""
+
+    duration_seconds: int = Field(..., description="Duration in seconds")
+    power_watts: Decimal = Field(..., description="Best average power for this duration")
+    activity_id: int = Field(..., description="Source activity ID for this best effort")
+    activity_date: date = Field(..., description="Date of the source activity")
+
+
+class PowerCurveResponse(BaseModel):
+    """Mean-max power curve across all activities in a date range."""
+
+    data: list[PowerCurvePoint] = Field(default_factory=list)
+    start_date: date
+    end_date: date
+
+
+# ---------------------------------------------------------------------------
+# Calendar (Plan 8.3)
+# ---------------------------------------------------------------------------
+
+
+class CalendarDay(BaseModel):
+    """Summary of activities for a single day."""
+
+    date: date
+    activity_count: int = Field(0, description="Number of activities on this day")
+    total_tss: Decimal = Field(Decimal("0"), description="Sum of TSS for the day")
+    total_duration_seconds: int = Field(0, description="Total duration in seconds")
+    total_distance_meters: Decimal = Field(Decimal("0"), description="Total distance in meters")
+
+
+class CalendarMonth(BaseModel):
+    """Calendar data for a month."""
+
+    year: int
+    month: int
+    days: list[CalendarDay] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Totals (Plan 8.4)
+# ---------------------------------------------------------------------------
+
+
+class TotalsPeriod(BaseModel):
+    """Aggregated totals for a single period (week/month/year)."""
+
+    period_label: str = Field(..., description="Human label for the period (e.g. '2024-W03', 'Jan 2024')")
+    period_start: date
+    period_end: date
+    ride_count: int = Field(0)
+    total_tss: Decimal = Field(Decimal("0"))
+    total_duration_seconds: int = Field(0)
+    total_distance_meters: Decimal = Field(Decimal("0"))
+
+
+class TotalsResponse(BaseModel):
+    """Aggregated totals over multiple periods."""
+
+    periods: list[TotalsPeriod] = Field(default_factory=list)
+    period_type: str = Field(..., description="weekly, monthly, or yearly")
+    start_date: date
+    end_date: date

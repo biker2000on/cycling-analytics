@@ -18,11 +18,16 @@ from app.models.fitness_metrics import DailyFitness
 from app.models.user import User
 from app.schemas.metrics import (
     ActivityMetricsResponse,
+    CalendarDay,
+    CalendarMonth,
     FitnessDataPoint,
     FitnessTimeSeries,
     HRAnalysisResponse,
     PeriodSummary,
     PowerAnalysisResponse,
+    PowerCurveResponse,
+    TotalsPeriod,
+    TotalsResponse,
 )
 from app.services.cache_service import (
     CacheService,
@@ -31,6 +36,8 @@ from app.services.cache_service import (
     summary_cache_key,
 )
 from app.services.power_analysis_service import get_hr_analysis, get_power_analysis
+from app.services.power_curve_service import get_power_curve_cached
+from app.services.totals_service import get_totals
 
 logger = structlog.get_logger(__name__)
 
@@ -365,3 +372,140 @@ async def get_activity_hr_analysis(
     """Return HR distribution, time-in-zones, and HR stats for an activity."""
     await _get_activity_for_analysis(activity_id, db, current_user.id)
     return await get_hr_analysis(activity_id, max_hr, db)
+
+
+# ---------------------------------------------------------------------------
+# Power Curve (Plan 8.2)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/power-curve",
+    response_model=PowerCurveResponse,
+    summary="Get mean-max power curve across all activities",
+)
+async def get_power_curve(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    start_date: date | None = Query(default=None, description="Start date (default: 90 days ago)"),
+    end_date: date | None = Query(default=None, description="End date (default: today)"),
+) -> PowerCurveResponse:
+    """Return the mean-max power curve across all activities in the date range.
+
+    For each standard duration (1s to 3600s), returns the best effort
+    found across all activities. Results are cached in Redis.
+    """
+    today = date.today()
+    if end_date is None:
+        end_date = today
+    if start_date is None:
+        start_date = end_date - timedelta(days=90)
+
+    if start_date > end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="start_date must be before end_date",
+        )
+
+    return await get_power_curve_cached(current_user.id, start_date, end_date, db)
+
+
+# ---------------------------------------------------------------------------
+# Calendar (Plan 8.3)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/calendar",
+    response_model=CalendarMonth,
+    summary="Get calendar data for a month",
+)
+async def get_calendar(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    year: int = Query(..., ge=2000, le=2100, description="Year"),
+    month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
+) -> CalendarMonth:
+    """Return daily activity summary for the given month."""
+    import calendar
+    from datetime import date as date_cls
+
+    first_day = date_cls(year, month, 1)
+    last_day_num = calendar.monthrange(year, month)[1]
+    last_day = date_cls(year, month, last_day_num)
+
+    stmt = select(
+        func.date(Activity.activity_date).label("day"),
+        func.count(Activity.id).label("activity_count"),
+        func.coalesce(func.sum(Activity.tss), Decimal("0")).label("total_tss"),
+        func.coalesce(func.sum(Activity.duration_seconds), 0).label("total_duration_seconds"),
+        func.coalesce(func.sum(Activity.distance_meters), Decimal("0")).label("total_distance_meters"),
+    ).where(
+        Activity.user_id == current_user.id,
+        Activity.activity_date >= first_day,
+        Activity.activity_date <= last_day,
+    ).group_by(
+        func.date(Activity.activity_date),
+    ).order_by(
+        func.date(Activity.activity_date),
+    )
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    days = [
+        CalendarDay(
+            date=row.day,
+            activity_count=row.activity_count,
+            total_tss=row.total_tss,
+            total_duration_seconds=row.total_duration_seconds,
+            total_distance_meters=row.total_distance_meters,
+        )
+        for row in rows
+    ]
+
+    return CalendarMonth(year=year, month=month, days=days)
+
+
+# ---------------------------------------------------------------------------
+# Totals (Plan 8.4)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/totals",
+    response_model=TotalsResponse,
+    summary="Get aggregated totals by period",
+)
+async def get_totals_endpoint(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    period: str = Query(default="weekly", description="Period type: weekly, monthly, yearly"),
+    start_date: date | None = Query(default=None, description="Start date"),
+    end_date: date | None = Query(default=None, description="End date (default: today)"),
+) -> TotalsResponse:
+    """Return aggregated totals grouped by the specified period type."""
+    today = date.today()
+    if end_date is None:
+        end_date = today
+    if start_date is None:
+        if period == "weekly":
+            start_date = end_date - timedelta(days=90)
+        elif period == "monthly":
+            start_date = end_date - timedelta(days=365)
+        else:
+            start_date = end_date - timedelta(days=365 * 3)
+
+    if start_date > end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="start_date must be before end_date",
+        )
+
+    if period not in ("weekly", "monthly", "yearly"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="period must be weekly, monthly, or yearly",
+        )
+
+    return await get_totals(current_user.id, period, start_date, end_date, db)

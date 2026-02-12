@@ -1,0 +1,62 @@
+.date-range-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.date-range-presets {
+  display: flex;
+  gap: 2px;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.date-range-btn {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.date-range-btn:hover {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+.date-range-btn-active {
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.date-range-custom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.date-input {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  background: var(--color-bg-input);
+  color: var(--color-text);
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+.date-range-separator {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}

@@ -1,0 +1,27 @@
+.totals-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.totals-controls {
+  padding: var(--space-md) var(--space-lg);
+}
+
+.totals-controls-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.totals-chart-card {
+  padding: var(--space-lg);
+}
+
+.totals-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
+}

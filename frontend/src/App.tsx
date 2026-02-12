@@ -9,6 +9,9 @@ import SetupWizardPage from './pages/SetupWizardPage.tsx';
 import ActivityListPage from './pages/ActivityListPage.tsx';
 import ActivityDetailPage from './pages/ActivityDetailPage.tsx';
 import DashboardPage from './pages/DashboardPage.tsx';
+import CalendarPage from './pages/CalendarPage.tsx';
+import PowerCurvePage from './pages/PowerCurvePage.tsx';
+import TotalsPage from './pages/TotalsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 
 export default function App() {
@@ -37,6 +40,9 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/activities" element={<ActivityListPage />} />
           <Route path="/activities/:id" element={<ActivityDetailPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/power-curve" element={<PowerCurvePage />} />
+          <Route path="/totals" element={<TotalsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 

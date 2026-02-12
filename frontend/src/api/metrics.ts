@@ -1,11 +1,14 @@
 import client from './client.ts';
 import type {
   ActivityMetricsResponse,
+  CalendarMonth,
   FitnessTimeSeries,
   HRAnalysisResponse,
   PeriodSummary,
   PowerAnalysisResponse,
+  PowerCurveResponse,
   FtpResponse,
+  TotalsResponse,
 } from './types.ts';
 
 export async function getActivityMetrics(
@@ -68,5 +71,36 @@ export async function getHRAnalysis(
     `/metrics/activities/${activityId}/hr-analysis`,
     { params: { max_hr: maxHR } },
   );
+  return data;
+}
+
+export async function getPowerCurve(
+  startDate?: string,
+  endDate?: string,
+): Promise<PowerCurveResponse> {
+  const { data } = await client.get<PowerCurveResponse>('/metrics/power-curve', {
+    params: { start_date: startDate, end_date: endDate },
+  });
+  return data;
+}
+
+export async function getCalendarData(
+  year: number,
+  month: number,
+): Promise<CalendarMonth> {
+  const { data } = await client.get<CalendarMonth>('/metrics/calendar', {
+    params: { year, month },
+  });
+  return data;
+}
+
+export async function getTotals(
+  period: string,
+  startDate?: string,
+  endDate?: string,
+): Promise<TotalsResponse> {
+  const { data } = await client.get<TotalsResponse>('/metrics/totals', {
+    params: { period, start_date: startDate, end_date: endDate },
+  });
   return data;
 }
