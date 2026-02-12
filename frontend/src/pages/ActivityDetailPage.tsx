@@ -4,6 +4,7 @@ import type { Activity, StreamSummaryResponse } from '../api/types.ts';
 import client from '../api/client.ts';
 import { getStreamSummary } from '../api/streams.ts';
 import { getCurrentFtp } from '../api/metrics.ts';
+import { reprocessActivity } from '../api/activities.ts';
 import ActivityHeader from '../components/activities/ActivityHeader.tsx';
 import ActivityStats from '../components/activities/ActivityStats.tsx';
 import ZoneShadedTimeline from '../components/charts/ZoneShadedTimeline.tsx';
@@ -31,6 +32,7 @@ export default function ActivityDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [reprocessing, setReprocessing] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -74,6 +76,22 @@ export default function ActivityDetailPage() {
     }
   }
 
+  async function handleReprocess() {
+    if (!id) return;
+    if (!confirm('Reprocess this activity? This will re-parse the original FIT file and rebuild all streams and laps.')) return;
+    setReprocessing(true);
+    setError('');
+    try {
+      await reprocessActivity(Number(id));
+      // Refetch activity to show updated status
+      await load();
+    } catch (err) {
+      setError('Failed to reprocess activity');
+    } finally {
+      setReprocessing(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="loading-state">
@@ -97,7 +115,12 @@ export default function ActivityDetailPage() {
 
   return (
     <div className="activity-detail-page">
-      <ActivityHeader activity={activity} onDelete={handleDelete} />
+      <ActivityHeader
+        activity={activity}
+        onDelete={handleDelete}
+        onReprocess={handleReprocess}
+        reprocessing={reprocessing}
+      />
       <ActivityStats activity={activity} ftp={ftp} />
 
       {/* Tab Navigation */}

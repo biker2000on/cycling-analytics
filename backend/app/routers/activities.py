@@ -431,6 +431,72 @@ async def delete_activity(
 
 
 @router.post(
+    "/{activity_id}/reprocess",
+    response_model=ActivityUploadResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Reprocess a FIT file",
+)
+async def reprocess_activity(
+    activity_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+) -> ActivityUploadResponse:
+    """Re-parse an activity's original FIT file and rebuild streams/laps.
+
+    Useful after parser fixes or if initial processing failed.
+    Only works for activities that have an original FIT file on disk.
+    """
+    stmt = select(Activity).where(
+        Activity.id == activity_id,
+        Activity.user_id == current_user.id,
+    )
+    result = await db.execute(stmt)
+    activity = result.scalar_one_or_none()
+
+    if activity is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Activity {activity_id} not found.",
+        )
+
+    if not activity.fit_file_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot reprocess: activity has no FIT file (manual entry or CSV import).",
+        )
+
+    settings = get_settings()
+    full_path = Path(settings.FIT_STORAGE_PATH) / activity.fit_file_path
+
+    if not full_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cannot reprocess: FIT file not found on disk.",
+        )
+
+    # Clear existing streams and laps
+    await db.execute(
+        delete(ActivityStream).where(ActivityStream.activity_id == activity_id)
+    )
+    await db.execute(
+        delete(ActivityLap).where(ActivityLap.activity_id == activity_id)
+    )
+
+    # Reset processing status
+    activity.processing_status = ProcessingStatus.pending
+    activity.error_message = None
+    await db.flush()
+
+    # Queue Celery task
+    from app.workers.tasks.fit_import import process_fit_upload
+    task = process_fit_upload.delay(activity_id, activity.fit_file_path)
+
+    logger.info("activity_reprocess_queued", activity_id=activity_id, task_id=task.id)
+
+    return ActivityUploadResponse(activity_id=activity.id, task_id=task.id)
+
+
+@router.post(
     "/manual",
     response_model=ActivityResponse,
     status_code=status.HTTP_201_CREATED,

@@ -70,3 +70,8 @@ export async function getTaskStatus(taskId: string): Promise<TaskStatus> {
 export async function deleteActivity(id: number): Promise<void> {
   await client.delete(`/activities/${id}`);
 }
+
+export async function reprocessActivity(activityId: number): Promise<{ activity_id: number; task_id: string }> {
+  const { data } = await client.post(`/activities/${activityId}/reprocess`);
+  return data;
+}

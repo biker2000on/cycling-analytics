@@ -32,3 +32,9 @@
 .source-badge {
   text-transform: capitalize;
 }
+
+.activity-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}

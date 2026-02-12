@@ -288,3 +288,115 @@ async def test_delete_activity_not_found_returns_404(client: AsyncClient) -> Non
     response = await client.delete("/activities/999")
 
     assert response.status_code == 404
+
+
+# -----------------------------------------------------------------------
+# POST /activities/{id}/reprocess
+# -----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reprocess_activity_success(client: AsyncClient) -> None:
+    """POST /activities/{id}/reprocess should reset status, clear streams/laps, and return 202."""
+    fake_activity = _make_fake_activity(
+        id=15,
+        fit_file_path="1/2026/02/test.fit",
+        processing_status=ProcessingStatus.complete,
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = fake_activity
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+
+    _override_db(mock_db)
+
+    with (
+        patch("app.workers.tasks.fit_import.process_fit_upload") as mock_task,
+        patch("app.routers.activities.Path") as mock_path,
+        patch("app.routers.activities.get_settings") as mock_settings,
+    ):
+        mock_settings.return_value.FIT_STORAGE_PATH = "/storage"
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = True
+        mock_path.return_value.__truediv__.return_value = mock_path_instance
+
+        mock_task_instance = MagicMock()
+        mock_task_instance.id = "task-abc-123"
+        mock_task.delay.return_value = mock_task_instance
+
+        response = await client.post("/activities/15/reprocess")
+
+    assert response.status_code == 202
+    data = response.json()
+    assert data["activity_id"] == 15
+    assert data["task_id"] == "task-abc-123"
+    assert fake_activity.processing_status == ProcessingStatus.pending
+    assert fake_activity.error_message is None
+
+
+@pytest.mark.asyncio
+async def test_reprocess_activity_no_fit_file(client: AsyncClient) -> None:
+    """Reprocess activity without fit_file_path should return 400."""
+    fake_activity = _make_fake_activity(id=20, fit_file_path=None, source=ActivitySource.manual)
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = fake_activity
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_db.commit = AsyncMock()
+
+    _override_db(mock_db)
+    response = await client.post("/activities/20/reprocess")
+
+    assert response.status_code == 400
+    assert "no FIT file" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_reprocess_activity_not_found(client: AsyncClient) -> None:
+    """Reprocess non-existent activity should return 404."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_db.commit = AsyncMock()
+
+    _override_db(mock_db)
+    response = await client.post("/activities/999/reprocess")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_reprocess_activity_file_not_on_disk(client: AsyncClient) -> None:
+    """Reprocess when FIT file missing from disk should return 404."""
+    fake_activity = _make_fake_activity(id=25, fit_file_path="1/2026/02/missing.fit")
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = fake_activity
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_db.commit = AsyncMock()
+
+    _override_db(mock_db)
+
+    with (
+        patch("app.routers.activities.Path") as mock_path,
+        patch("app.routers.activities.get_settings") as mock_settings,
+    ):
+        mock_settings.return_value.FIT_STORAGE_PATH = "/storage"
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = False
+        mock_path.return_value.__truediv__.return_value = mock_path_instance
+
+        response = await client.post("/activities/25/reprocess")
+
+    assert response.status_code == 404
+    assert "not found on disk" in response.json()["detail"]

@@ -6,9 +6,11 @@ import './ActivityHeader.css';
 interface Props {
   activity: Activity;
   onDelete: () => void;
+  onReprocess?: () => void;
+  reprocessing?: boolean;
 }
 
-export default function ActivityHeader({ activity, onDelete }: Props) {
+export default function ActivityHeader({ activity, onDelete, onReprocess, reprocessing }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -36,9 +38,26 @@ export default function ActivityHeader({ activity, onDelete }: Props) {
           </div>
         </div>
       </div>
-      <button className="btn btn-danger btn-sm" onClick={onDelete}>
-        Delete
-      </button>
+      <div className="activity-header-right">
+        {activity.fit_file_path && onReprocess && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onReprocess}
+            disabled={reprocessing}
+          >
+            {reprocessing ? (
+              <>
+                <span className="spinner" /> Reprocessing...
+              </>
+            ) : (
+              'Reprocess'
+            )}
+          </button>
+        )}
+        <button className="btn btn-danger btn-sm" onClick={onDelete}>
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
