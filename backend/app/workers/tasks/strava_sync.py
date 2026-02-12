@@ -515,20 +515,23 @@ def process_strava_webhook(self: BaseTask, event_data: dict[str, Any]) -> dict[s
     name="app.workers.tasks.strava_sync.strava_historical_backfill",
     queue="low_priority",
 )
-def strava_historical_backfill(self: BaseTask, user_id: int) -> dict[str, Any]:
-    """Backfill all historical Strava activities for a user.
+def strava_historical_backfill(
+    self: BaseTask, user_id: int, backfill_days: int | None = None
+) -> dict[str, Any]:
+    """Backfill historical Strava activities for a user.
 
-    Fetches every activity from the user's Strava account and imports
-    any that are not already in the database.
+    When ``backfill_days`` is provided, only fetches activities from the last
+    N days.  Otherwise fetches every activity from the user's Strava account.
 
     Args:
         user_id: User ID to backfill for.
+        backfill_days: If provided, limit backfill to this many days.
 
     Returns:
         Dict with synced_count, skipped_count, error_count.
     """
     log = logger.bind(user_id=user_id, task="strava_historical_backfill")
-    log.info("strava_backfill_started")
+    log.info("strava_backfill_started", backfill_days=backfill_days)
 
     session = self.session_maker()
     svc = StravaService()
@@ -536,7 +539,22 @@ def strava_historical_backfill(self: BaseTask, user_id: int) -> dict[str, Any]:
         integration = _get_strava_integration(session, user_id)
         access_token = _get_valid_access_token(session, integration)
 
-        all_activities = svc.backfill_all_activities(access_token)
+        if backfill_days is not None:
+            after_epoch = int(
+                (datetime.now(UTC) - timedelta(days=backfill_days)).timestamp()
+            )
+            all_activities: list[dict[str, Any]] = []
+            page = 1
+            while True:
+                batch = svc.fetch_activities_since(access_token, after_epoch, page)
+                if not batch:
+                    break
+                all_activities.extend(batch)
+                if len(batch) < 100:
+                    break
+                page += 1
+        else:
+            all_activities = svc.backfill_all_activities(access_token)
         log.info("strava_backfill_activities_fetched", total=len(all_activities))
 
         synced = 0

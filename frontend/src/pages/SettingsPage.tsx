@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import client from '../api/client.ts';
 import type { UserSettings } from '../api/types.ts';
+import GarminConnect from '../components/settings/GarminConnect.tsx';
+import StravaConnect from '../components/settings/StravaConnect.tsx';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -87,6 +89,30 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Integrations ──────────────────────────────────────────── */}
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          fontWeight: 600,
+          marginTop: 'var(--space-xl)',
+          marginBottom: 'var(--space-sm)',
+        }}
+      >
+        Integrations
+      </h2>
+      <p
+        style={{
+          fontSize: '0.875rem',
+          color: 'var(--color-text-secondary)',
+          marginBottom: 'var(--space-md)',
+        }}
+      >
+        Connect external platforms to automatically import your rides.
+      </p>
+
+      <GarminConnect />
+      <StravaConnect />
     </div>
   );
 }

@@ -1,0 +1,126 @@
+/* ── Strava integration card ───────────────────────────────────────── */
+
+.strava-card {
+  margin-top: var(--space-md);
+}
+
+.strava-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.strava-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ── Status badge ─────────────────────────────────────────────────── */
+
+.strava-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.strava-badge--connected {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.strava-badge--disconnected {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+}
+
+/* ── Strava brand connect button ──────────────────────────────────── */
+
+.btn-strava {
+  background: #fc4c02;
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-strava:hover:not(:disabled) {
+  background: #e34402;
+}
+
+/* ── Status info ──────────────────────────────────────────────────── */
+
+.strava-info {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.strava-info p {
+  margin-bottom: var(--space-xs);
+}
+
+/* ── Action row ───────────────────────────────────────────────────── */
+
+.strava-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ── Connect section ──────────────────────────────────────────────── */
+
+.strava-connect-text {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Sync progress ────────────────────────────────────────────────── */
+
+.strava-sync-progress {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.strava-sync-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.strava-sync-bar-fill {
+  height: 100%;
+  background: #fc4c02;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  min-width: 0;
+}
+
+.strava-sync-text {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.strava-sync-success {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.strava-sync-error {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  font-weight: 500;
+}

@@ -1,0 +1,122 @@
+/* ── Garmin integration card ───────────────────────────────────────── */
+
+.garmin-card {
+  margin-top: var(--space-md);
+}
+
+.garmin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.garmin-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ── Status badge ─────────────────────────────────────────────────── */
+
+.garmin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.garmin-badge--active {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.garmin-badge--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+}
+
+.garmin-badge--disconnected {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+}
+
+/* ── Status info ──────────────────────────────────────────────────── */
+
+.garmin-info {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.garmin-info p {
+  margin-bottom: var(--space-xs);
+}
+
+.garmin-error-msg {
+  color: var(--color-danger);
+}
+
+/* ── Action row ───────────────────────────────────────────────────── */
+
+.garmin-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ── Connect form ─────────────────────────────────────────────────── */
+
+.garmin-connect-text {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Sync progress ────────────────────────────────────────────────── */
+
+.garmin-sync-progress {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.garmin-sync-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.garmin-sync-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  min-width: 0;
+}
+
+.garmin-sync-text {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.garmin-sync-success {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.garmin-sync-error {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  font-weight: 500;
+}

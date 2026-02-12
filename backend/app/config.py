@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Cycling Analytics"
     SECRET_KEY: str = "change-me-in-production"
     DEBUG: bool = True
+    FRONTEND_URL: str = "http://localhost:5173"
 
     # Strava OAuth2
     STRAVA_CLIENT_ID: str = ""

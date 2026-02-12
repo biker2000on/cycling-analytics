@@ -7,6 +7,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import RedirectResponse
 
 from app.config import get_settings
 from app.dependencies import get_current_user_or_default, get_db
@@ -130,6 +131,7 @@ async def connect_garmin(
 async def trigger_garmin_sync(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user_or_default)],
+    days: int = Query(default=30, ge=1, le=3650),
 ) -> dict[str, str]:
     """Queue a manual Garmin sync for activities and health data."""
     integration = await _get_garmin_integration(db, current_user.id)
@@ -150,6 +152,7 @@ async def trigger_garmin_sync(
     activity_task = celery_app.send_task(
         "app.workers.tasks.garmin_sync.sync_garmin_activities",
         args=[current_user.id],
+        kwargs={"backfill_days": days},
         queue="low_priority",
     )
     health_task = celery_app.send_task(
@@ -190,6 +193,46 @@ async def get_garmin_status(
         )
 
     return IntegrationStatusResponse.model_validate(integration)
+
+
+@router.post(
+    "/garmin/backfill",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Trigger Garmin historical backfill",
+)
+async def trigger_garmin_backfill(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user_or_default)],
+    days: int = Query(default=90, ge=1, le=3650),
+) -> dict[str, str]:
+    """Queue a Garmin backfill for the specified number of days."""
+    integration = await _get_garmin_integration(db, current_user.id)
+
+    if integration is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No Garmin integration found. Connect your account first.",
+        )
+
+    if integration.status == IntegrationStatus.disconnected:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Garmin integration is disconnected. Reconnect your account.",
+        )
+
+    task = celery_app.send_task(
+        "app.workers.tasks.garmin_sync.sync_garmin_activities",
+        args=[current_user.id],
+        kwargs={"backfill_days": days},
+        queue="low_priority",
+    )
+
+    logger.info("garmin_backfill_triggered", task_id=task.id, days=days)
+
+    return {
+        "task_id": task.id,
+        "message": f"Garmin backfill queued for {days} days",
+    }
 
 
 @router.delete(
@@ -259,24 +302,33 @@ async def strava_authorize() -> StravaAuthUrl:
 
 @router.get(
     "/strava/callback",
-    response_model=StravaCallbackResponse,
+    response_model=None,
     summary="Strava OAuth2 callback",
 )
 async def strava_callback(
     code: Annotated[str, Query(description="Authorization code from Strava")],
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user_or_default)],
-) -> StravaCallbackResponse:
-    """Exchange Strava authorization code for tokens and store them."""
+    format: str | None = Query(default=None),
+) -> StravaCallbackResponse | RedirectResponse:
+    """Exchange Strava authorization code for tokens and store them.
+
+    By default, redirects the browser to the frontend settings page.
+    Pass ``?format=json`` to receive a JSON response instead.
+    """
     settings = get_settings()
 
     svc = StravaService()
     try:
         token_data = svc.exchange_code(code, settings.STRAVA_REDIRECT_URI)
     except StravaAuthError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Strava authentication failed: {exc}",
+        if format == "json":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Strava authentication failed: {exc}",
+            )
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/settings?strava_error=auth_failed"
         )
     finally:
         svc.close()
@@ -319,7 +371,12 @@ async def strava_callback(
 
     await db.flush()
 
-    return StravaCallbackResponse(connected=True, athlete_id=athlete_id)
+    if format == "json":
+        return StravaCallbackResponse(connected=True, athlete_id=athlete_id)
+
+    return RedirectResponse(
+        url=f"{settings.FRONTEND_URL}/settings?strava_connected=true&athlete_id={athlete_id}"
+    )
 
 
 @router.get(
@@ -420,8 +477,9 @@ async def trigger_strava_sync(
 async def trigger_strava_backfill(
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user_or_default)],
+    days: int = Query(default=90, ge=1, le=3650),
 ) -> dict[str, str]:
-    """Queue a full historical backfill of all Strava activities."""
+    """Queue a historical backfill of Strava activities for the specified number of days."""
     integration = await _get_strava_integration(db, current_user.id)
 
     if integration is None:
@@ -439,12 +497,13 @@ async def trigger_strava_backfill(
     task = celery_app.send_task(
         "app.workers.tasks.strava_sync.strava_historical_backfill",
         args=[current_user.id],
+        kwargs={"backfill_days": days},
         queue="low_priority",
     )
 
-    logger.info("strava_backfill_triggered", task_id=task.id)
+    logger.info("strava_backfill_triggered", task_id=task.id, days=days)
 
     return {
         "task_id": task.id,
-        "message": "Strava historical backfill queued successfully",
+        "message": f"Strava historical backfill queued for {days} days",
     }

@@ -99,7 +99,9 @@ def _update_integration_error(
     name="app.workers.tasks.garmin_sync.sync_garmin_activities",
     queue="low_priority",
 )
-def sync_garmin_activities(self: BaseTask, user_id: int) -> dict[str, Any]:
+def sync_garmin_activities(
+    self: BaseTask, user_id: int, backfill_days: int | None = None
+) -> dict[str, Any]:
     """Fetch new activities from Garmin Connect and import their FIT files.
 
     1. Authenticate with Garmin Connect using stored credentials.
@@ -111,19 +113,22 @@ def sync_garmin_activities(self: BaseTask, user_id: int) -> dict[str, Any]:
 
     Args:
         user_id: User ID to sync activities for.
+        backfill_days: If provided, override the lookback window to this many days.
 
     Returns:
         Dict with synced_count, skipped_count, and error_count.
     """
     log = logger.bind(user_id=user_id, task="sync_garmin_activities")
-    log.info("garmin_activity_sync_started")
+    log.info("garmin_activity_sync_started", backfill_days=backfill_days)
 
     session = self.session_maker()
     try:
         svc, integration = _get_garmin_service(session, user_id)
 
         # Determine sync window
-        if integration.last_sync_at is not None:
+        if backfill_days is not None:
+            since = datetime.now(UTC) - timedelta(days=backfill_days)
+        elif integration.last_sync_at is not None:
             since = integration.last_sync_at
         else:
             since = datetime.now(UTC) - timedelta(days=DEFAULT_LOOKBACK_DAYS)
