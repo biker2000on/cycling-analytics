@@ -1,4 +1,4 @@
-"""Coggan power model — NP, IF, TSS, power zones.
+"""Coggan power model — NP, IF, TSS, power zones, CTL/ATL/TSB.
 
 Implements Dr. Andrew Coggan's training metrics used in TrainingPeaks,
 WKO, and Golden Cheetah.
@@ -6,11 +6,13 @@ WKO, and Golden Cheetah.
 All numeric outputs use Decimal for precision (NUMERIC in database).
 """
 
+import math
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 import numpy as np
 
-from app.schemas.metrics import NormalizedPowerResult, PowerZoneDistribution
+from app.schemas.metrics import FitnessDataPoint, NormalizedPowerResult, PowerZoneDistribution
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -248,3 +250,81 @@ def calculate_zone_distribution(
         total += 1
 
     return PowerZoneDistribution(zone_seconds=zone_seconds, total_seconds=total)
+
+
+# ---------------------------------------------------------------------------
+# CTL / ATL / TSB (Fitness / Fatigue / Form)
+# ---------------------------------------------------------------------------
+
+# EWMA time constants (days)
+CTL_TIME_CONSTANT = 42  # Chronic Training Load
+ATL_TIME_CONSTANT = 7   # Acute Training Load
+
+# Decay factors: alpha = 1 - exp(-1/TC)
+CTL_DECAY = Decimal(str(1 - math.exp(-1 / CTL_TIME_CONSTANT)))
+ATL_DECAY = Decimal(str(1 - math.exp(-1 / ATL_TIME_CONSTANT)))
+
+
+def calculate_ctl_atl_tsb(
+    daily_tss: list[tuple[date, Decimal]],
+    initial_ctl: Decimal = Decimal("0"),
+    initial_atl: Decimal = Decimal("0"),
+) -> list[FitnessDataPoint]:
+    """Calculate CTL, ATL, and TSB from daily TSS values.
+
+    Uses Exponentially Weighted Moving Average (EWMA):
+        CTL_today = CTL_yesterday + (TSS - CTL_yesterday) * (1 - exp(-1/42))
+        ATL_today = ATL_yesterday + (TSS - ATL_yesterday) * (1 - exp(-1/7))
+        TSB = CTL - ATL
+
+    Rest days (no entry in daily_tss) are filled with TSS=0 — the decay
+    still applies, modelling fitness/fatigue dissipation.
+
+    Args:
+        daily_tss: List of (date, total_tss) tuples sorted by date.
+                   Multiple activities per day should be pre-summed.
+        initial_ctl: Starting CTL value (from previous history).
+        initial_atl: Starting ATL value (from previous history).
+
+    Returns:
+        List of FitnessDataPoint for every day from first to last date.
+    """
+    if not daily_tss:
+        return []
+
+    # Build a lookup of date -> TSS
+    tss_map: dict[date, Decimal] = {}
+    for d, tss in daily_tss:
+        tss_map[d] = tss_map.get(d, Decimal("0")) + tss
+
+    # Determine date range
+    all_dates = sorted(tss_map.keys())
+    start = all_dates[0]
+    end = all_dates[-1]
+
+    ctl = initial_ctl
+    atl = initial_atl
+    result: list[FitnessDataPoint] = []
+
+    current = start
+    while current <= end:
+        tss_today = tss_map.get(current, Decimal("0"))
+
+        # EWMA update
+        ctl = ctl + (tss_today - ctl) * CTL_DECAY
+        atl = atl + (tss_today - atl) * ATL_DECAY
+        tsb = ctl - atl
+
+        result.append(
+            FitnessDataPoint(
+                date=current,
+                tss_total=_to_decimal(float(tss_today), 1),
+                ctl=_to_decimal(float(ctl), 1),
+                atl=_to_decimal(float(atl), 1),
+                tsb=_to_decimal(float(tsb), 1),
+            )
+        )
+
+        current += timedelta(days=1)
+
+    return result

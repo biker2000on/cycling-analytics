@@ -13,6 +13,7 @@ from app.routers import (
     health,
     imports,
     integrations,
+    metrics,
     routes,
     settings as settings_router,
     streams,
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(streams.router)
     app.include_router(routes.router)
     app.include_router(settings_router.router)
+    app.include_router(metrics.router)
 
     return app
 
