@@ -65,4 +65,5 @@ backups/
 .prompts/
 .playwright/
 .claude/
+.fitfiles/
 nul
