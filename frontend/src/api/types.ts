@@ -305,12 +305,26 @@ export interface PowerCurveResponse {
 
 // ── Calendar ────────────────────────────────────────────────────────
 
+export interface CalendarActivity {
+  id: number;
+  name: string;
+  sport_type: string | null;
+  duration_seconds: number | null;
+  distance_meters: number | null;
+  tss: number | null;
+  elevation_gain_meters: number | null;
+  avg_power_watts: number | null;
+  avg_hr: number | null;
+  intensity_factor: number | null;
+}
+
 export interface CalendarDay {
   date: string;
   activity_count: number;
   total_tss: number;
   total_duration_seconds: number;
   total_distance_meters: number;
+  activities: CalendarActivity[];
 }
 
 export interface CalendarMonth {

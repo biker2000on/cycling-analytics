@@ -207,14 +207,32 @@ class PowerCurveResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class CalendarActivity(BaseModel):
+    """Individual activity summary for calendar display."""
+
+    id: int
+    name: str
+    sport_type: str | None = None
+    duration_seconds: int | None = None
+    distance_meters: Decimal | None = None
+    tss: Decimal | None = None
+    elevation_gain_meters: Decimal | None = None
+    avg_power_watts: Decimal | None = None
+    avg_hr: int | None = None
+    intensity_factor: Decimal | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class CalendarDay(BaseModel):
-    """Summary of activities for a single day."""
+    """Summary of activities for a single day, with individual activity details."""
 
     date: date
     activity_count: int = Field(0, description="Number of activities on this day")
     total_tss: Decimal = Field(Decimal("0"), description="Sum of TSS for the day")
     total_duration_seconds: int = Field(0, description="Total duration in seconds")
     total_distance_meters: Decimal = Field(Decimal("0"), description="Total distance in meters")
+    activities: list[CalendarActivity] = Field(default_factory=list, description="Individual activities")
 
 
 class CalendarMonth(BaseModel):

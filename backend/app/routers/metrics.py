@@ -426,43 +426,63 @@ async def get_calendar(
     year: int = Query(..., ge=2000, le=2100, description="Year"),
     month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
 ) -> CalendarMonth:
-    """Return daily activity summary for the given month."""
+    """Return daily activity summary with individual activities for the given month."""
     import calendar
+    from collections import defaultdict
     from datetime import date as date_cls
+
+    from app.schemas.metrics import CalendarActivity
 
     first_day = date_cls(year, month, 1)
     last_day_num = calendar.monthrange(year, month)[1]
     last_day = date_cls(year, month, last_day_num)
 
-    stmt = select(
-        func.date(Activity.activity_date).label("day"),
-        func.count(Activity.id).label("activity_count"),
-        func.coalesce(func.sum(Activity.tss), Decimal("0")).label("total_tss"),
-        func.coalesce(func.sum(Activity.duration_seconds), 0).label("total_duration_seconds"),
-        func.coalesce(func.sum(Activity.distance_meters), Decimal("0")).label("total_distance_meters"),
-    ).where(
+    # Fetch individual activities for the month
+    stmt = select(Activity).where(
         Activity.user_id == current_user.id,
         Activity.activity_date >= first_day,
         Activity.activity_date <= last_day,
-    ).group_by(
-        func.date(Activity.activity_date),
-    ).order_by(
-        func.date(Activity.activity_date),
-    )
+    ).order_by(Activity.activity_date)
 
     result = await db.execute(stmt)
-    rows = result.all()
+    activities = result.scalars().all()
 
-    days = [
-        CalendarDay(
-            date=row.day,
-            activity_count=row.activity_count,
-            total_tss=row.total_tss,
-            total_duration_seconds=row.total_duration_seconds,
-            total_distance_meters=row.total_distance_meters,
-        )
-        for row in rows
-    ]
+    # Group by date
+    by_date: dict[date_cls, list[Activity]] = defaultdict(list)
+    for act in activities:
+        day_key = act.activity_date.date() if hasattr(act.activity_date, 'date') else act.activity_date
+        by_date[day_key].append(act)
+
+    days = []
+    for day_date, day_acts in sorted(by_date.items()):
+        total_tss = sum((a.tss or Decimal("0")) for a in day_acts)
+        total_duration = sum((a.duration_seconds or 0) for a in day_acts)
+        total_distance = sum((a.distance_meters or Decimal("0")) for a in day_acts)
+
+        cal_activities = [
+            CalendarActivity(
+                id=a.id,
+                name=a.name,
+                sport_type=a.sport_type,
+                duration_seconds=a.duration_seconds,
+                distance_meters=a.distance_meters,
+                tss=a.tss,
+                elevation_gain_meters=a.elevation_gain_meters,
+                avg_power_watts=a.avg_power_watts,
+                avg_hr=a.avg_hr,
+                intensity_factor=a.intensity_factor,
+            )
+            for a in day_acts
+        ]
+
+        days.append(CalendarDay(
+            date=day_date,
+            activity_count=len(day_acts),
+            total_tss=total_tss,
+            total_duration_seconds=total_duration,
+            total_distance_meters=total_distance,
+            activities=cal_activities,
+        ))
 
     return CalendarMonth(year=year, month=month, days=days)
 

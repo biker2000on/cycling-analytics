@@ -35,7 +35,7 @@
 }
 
 .month-header-summary {
-  flex: 0 0 180px;
+  flex: 0 0 140px;
   text-align: left;
   padding-left: var(--space-sm);
 }
@@ -55,8 +55,9 @@
 /* Day cells */
 .day-cell {
   flex: 1;
-  min-height: 60px;
-  padding: var(--space-xs);
+  min-height: 80px;
+  max-height: 140px;
+  padding: 3px 4px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -64,6 +65,7 @@
   transition: all var(--transition-fast);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .day-cell:hover {
@@ -75,6 +77,7 @@
   background: transparent;
   border-color: transparent;
   cursor: default;
+  min-height: 80px;
 }
 
 .day-cell-empty:hover {
@@ -91,54 +94,87 @@
   background: var(--color-bg-card);
 }
 
-/* TSS intensity colors */
-.tss-light {
-  background: rgba(16, 185, 129, 0.05);
-}
-
-.tss-moderate {
-  background: rgba(59, 130, 246, 0.08);
-}
-
-.tss-hard {
-  background: rgba(245, 158, 11, 0.1);
-}
-
-.tss-very-hard {
-  background: rgba(239, 68, 68, 0.1);
-}
-
 .day-number {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+  line-height: 1;
 }
 
-.day-details {
-  margin-top: auto;
+.day-cell-today .day-number {
+  color: var(--color-primary);
+}
+
+/* Activity cards inside day cells */
+.day-activities {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
 }
 
-.day-activity-count {
-  font-size: 0.625rem;
-  color: var(--color-text-secondary);
+.cal-activity-card {
+  padding: 2px 4px;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 2px;
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  overflow: hidden;
 }
 
-.day-tss {
+.cal-activity-card:hover {
+  background: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
+}
+
+.cal-activity-header {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.2;
+}
+
+.cal-activity-icon {
   font-size: 0.625rem;
+  flex-shrink: 0;
+}
+
+.cal-activity-name {
+  font-size: 0.5625rem;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-activity-stats {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cal-stat {
+  font-size: 0.5625rem;
+  color: var(--color-text-secondary);
   font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.cal-stat-tss {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* Weekly summary */
 .weekly-summary {
-  flex: 0 0 180px;
+  flex: 0 0 140px;
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-bg);
   border-radius: var(--radius-sm);
@@ -149,12 +185,46 @@
 
 .weekly-summary-empty {
   opacity: 0.5;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .weekly-label {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
-  min-width: 28px;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.weekly-stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.weekly-stat-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.weekly-stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.weekly-stat-unit {
+  font-size: 0.5625rem;
+  color: var(--color-text-secondary);
+}
+
+.weekly-stat-tss {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .weekly-stat {
@@ -165,6 +235,14 @@
 @media (max-width: 768px) {
   .month-header-summary,
   .weekly-summary {
+    display: none;
+  }
+
+  .day-cell {
+    min-height: 60px;
+  }
+
+  .cal-activity-stats {
     display: none;
   }
 }
