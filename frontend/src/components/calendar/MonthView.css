@@ -232,6 +232,41 @@
   white-space: nowrap;
 }
 
+/* Skeleton loading */
+.day-cell-skeleton {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+  cursor: default;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.day-cell-skeleton:hover {
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
+.skeleton-bar {
+  display: block;
+  background: var(--color-border);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.skeleton-day-num {
+  width: 14px;
+  height: 10px;
+}
+
+.skeleton-week-label {
+  width: 24px;
+  height: 10px;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 @media (max-width: 768px) {
   .month-header-summary,
   .weekly-summary {

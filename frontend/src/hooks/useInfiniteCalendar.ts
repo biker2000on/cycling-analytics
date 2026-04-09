@@ -20,23 +20,41 @@ interface UseInfiniteCalendarReturn {
 }
 
 const MAX_MONTHS = 24;
+const INITIAL_PAST_MONTHS = 3;
 
 function getMonthKey(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`;
 }
 
 function incrementMonth(year: number, month: number): { year: number; month: number } {
-  if (month === 12) {
-    return { year: year + 1, month: 1 };
-  }
-  return { year, month: month + 1 };
+  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 }
 
 function decrementMonth(year: number, month: number): { year: number; month: number } {
-  if (month === 1) {
-    return { year: year - 1, month: 12 };
+  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+}
+
+function buildMonthRange(centerYear: number, centerMonth: number, pastCount: number): MonthData[] {
+  const result: MonthData[] = [];
+  let y = centerYear;
+  let m = centerMonth;
+
+  // Go back pastCount months
+  for (let i = 0; i < pastCount; i++) {
+    const prev = decrementMonth(y, m);
+    y = prev.year;
+    m = prev.month;
   }
-  return { year, month: month - 1 };
+
+  // Build pastCount + current + 1 future
+  for (let i = 0; i < pastCount + 2; i++) {
+    result.push({ year: y, month: m, data: null, loading: true, error: null });
+    const next = incrementMonth(y, m);
+    y = next.year;
+    m = next.month;
+  }
+
+  return result;
 }
 
 export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
@@ -44,15 +62,9 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
 
-  const [months, setMonths] = useState<MonthData[]>(() => {
-    // Start with 2 months: previous, current (no next to allow loadNewer to work)
-    const prev = decrementMonth(currentYear, currentMonth);
-
-    return [
-      { year: prev.year, month: prev.month, data: null, loading: true, error: null },
-      { year: currentYear, month: currentMonth, data: null, loading: true, error: null },
-    ];
-  });
+  const [months, setMonths] = useState<MonthData[]>(() =>
+    buildMonthRange(currentYear, currentMonth, INITIAL_PAST_MONTHS)
+  );
 
   const [activeMonth, setActiveMonthState] = useState<{ year: number; month: number } | null>({
     year: currentYear,
@@ -66,13 +78,9 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
   const loadingRef = useRef(new Set<string>());
   const pendingMonths = useRef(new Set<string>());
 
-  // Fetch data for a specific month
   const fetchMonth = useCallback(async (year: number, month: number) => {
     const key = getMonthKey(year, month);
-    if (loadingRef.current.has(key)) {
-      return; // Already loading
-    }
-
+    if (loadingRef.current.has(key)) return;
     loadingRef.current.add(key);
 
     try {
@@ -104,10 +112,8 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
   useEffect(() => {
     months.forEach((m) => {
       if (m.loading && m.data === null && m.error === null) {
-        const key = getMonthKey(m.year, m.month);
         fetchMonth(m.year, m.month);
-        // Clear from pending set after state is committed
-        pendingMonths.current.delete(key);
+        pendingMonths.current.delete(getMonthKey(m.year, m.month));
       }
     });
   }, [months, fetchMonth]);
@@ -120,19 +126,14 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
       const olderMonth = decrementMonth(oldest.year, oldest.month);
       const key = getMonthKey(olderMonth.year, olderMonth.month);
 
-      // Prevent duplicate additions during rapid scrolling
-      if (pendingMonths.current.has(key)) {
-        return prev;
-      }
+      if (pendingMonths.current.has(key)) return prev;
       pendingMonths.current.add(key);
 
-      // Prepend older month
       let updated = [
         { year: olderMonth.year, month: olderMonth.month, data: null, loading: true, error: null },
         ...prev,
       ];
 
-      // Trim from end if exceeding MAX_MONTHS
       if (updated.length > MAX_MONTHS) {
         updated = updated.slice(0, MAX_MONTHS);
       }
@@ -148,7 +149,7 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
       const newest = prev[prev.length - 1];
       const newerMonth = incrementMonth(newest.year, newest.month);
 
-      // Allow loading up to one month into the future
+      // Allow up to 1 month into the future
       const limit = incrementMonth(currentYear, currentMonth);
       if (
         newerMonth.year > limit.year ||
@@ -158,20 +159,14 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
       }
 
       const key = getMonthKey(newerMonth.year, newerMonth.month);
-
-      // Prevent duplicate additions during rapid scrolling
-      if (pendingMonths.current.has(key)) {
-        return prev;
-      }
+      if (pendingMonths.current.has(key)) return prev;
       pendingMonths.current.add(key);
 
-      // Append newer month
       let updated = [
         ...prev,
         { year: newerMonth.year, month: newerMonth.month, data: null, loading: true, error: null },
       ];
 
-      // Trim from beginning if exceeding MAX_MONTHS
       if (updated.length > MAX_MONTHS) {
         updated = updated.slice(updated.length - MAX_MONTHS);
       }
