@@ -33,32 +33,36 @@ export default function CalendarPage() {
     return () => observer.disconnect();
   }, [loadOlder]);
 
-  // Track which month header is in view for the navigation title
+  // Track which month header is in view for the navigation title.
+  // Use a scroll listener to find the topmost visible month section.
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const headers = container.querySelectorAll('.calendar-month-sticky-header');
-    if (headers.length === 0) return;
+    function updateActiveMonth() {
+      const sections = container!.querySelectorAll('.calendar-month-section');
+      const containerTop = container!.getBoundingClientRect().top;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const header = entry.target as HTMLElement;
+      for (const section of sections) {
+        const rect = section.getBoundingClientRect();
+        // The first section whose bottom is below the container top
+        if (rect.bottom > containerTop + 50) {
+          const header = section.querySelector('.calendar-month-sticky-header') as HTMLElement;
+          if (header) {
             const year = parseInt(header.dataset.year || '0', 10);
             const month = parseInt(header.dataset.month || '0', 10);
             if (year && month) {
               setActiveMonth(year, month);
             }
           }
+          break;
         }
-      },
-      { threshold: [0.5], root: container }
-    );
+      }
+    }
 
-    headers.forEach((header) => observer.observe(header));
-    return () => observer.disconnect();
+    updateActiveMonth();
+    container.addEventListener('scroll', updateActiveMonth, { passive: true });
+    return () => container.removeEventListener('scroll', updateActiveMonth);
   }, [months, setActiveMonth]);
 
   const handleDayClick = useCallback((dateStr: string) => {

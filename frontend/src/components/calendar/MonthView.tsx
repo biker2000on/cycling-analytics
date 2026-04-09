@@ -58,6 +58,9 @@ export default function MonthView({ calendarData, onDayClick }: Props) {
     weeks.push({ days: [...currentWeek], weekLabel: `W${weekNum}` });
   }
 
+  // Reverse weeks so most recent week is at top
+  weeks.reverse();
+
   const today = new Date();
 
   return (
