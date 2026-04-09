@@ -18,19 +18,45 @@ export default function CalendarPage() {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    function onScroll() {
+    let rafId: number | null = null;
+
+    function checkScroll() {
       const { scrollTop, scrollHeight, clientHeight } = container!;
-      // Load more when within 400px of the bottom
       if (scrollHeight - scrollTop - clientHeight < 400) {
         loadOlder();
       }
     }
 
+    function onScroll() {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        checkScroll();
+        rafId = null;
+      });
+    }
+
     container.addEventListener('scroll', onScroll, { passive: true });
-    // Also check after each render (new month loaded may still not fill viewport)
-    onScroll();
-    return () => container.removeEventListener('scroll', onScroll);
-  }, [loadOlder, months]);
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [loadOlder]);
+
+  // After months change (new month loaded), check if we still need more to fill viewport
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Small delay to let the DOM update with the new month content
+    const timer = setTimeout(() => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 400) {
+        loadOlder();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [months.length, loadOlder]);
 
   // Track which month header is in view for the navigation title.
   // Use a scroll listener to find the topmost visible month section.
