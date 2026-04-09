@@ -13,6 +13,7 @@
   gap: var(--space-md);
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 .calendar-scroll-container {
@@ -39,20 +40,11 @@
   margin-bottom: var(--space-sm);
 }
 
-.calendar-today-fab-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
-  height: 0;
-}
-
 .calendar-today-fab {
-  pointer-events: auto;
-  margin-top: 4px;
-  margin-right: 4px;
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-lg);
+  z-index: 10;
   padding: 5px 14px;
   font-size: 0.8125rem;
   font-weight: 600;
