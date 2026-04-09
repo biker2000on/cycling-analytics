@@ -15,7 +15,7 @@ from typing import Any
 
 import structlog
 from cryptography.fernet import Fernet, InvalidToken
-from garminconnect import Garmin, GarminConnectAuthenticationError, GarminConnectConnectionError
+from garminconnect import Garmin
 
 logger = structlog.get_logger(__name__)
 
@@ -107,6 +107,9 @@ class GarminService:
     def login(self) -> None:
         """Authenticate with Garmin Connect.
 
+        Uses garminconnect >= 0.3.1 mobile SSO flow (no garth dependency).
+        See: https://github.com/matin/garth/discussions/222
+
         Raises:
             GarminAuthError: If authentication fails.
         """
@@ -114,11 +117,12 @@ class GarminService:
             self._client = Garmin(self.email, self.password)
             self._client.login()
             logger.info("garmin_login_success", email=self.email)
-        except GarminConnectAuthenticationError as exc:
-            logger.warning("garmin_login_failed", email=self.email, error=str(exc))
-            raise GarminAuthError(f"Garmin authentication failed: {exc}") from exc
-        except GarminConnectConnectionError as exc:
-            logger.error("garmin_connection_error", email=self.email, error=str(exc))
+        except Exception as exc:
+            error_msg = str(exc)
+            if "authentication" in error_msg.lower() or "login" in error_msg.lower():
+                logger.warning("garmin_login_failed", email=self.email, error=error_msg)
+                raise GarminAuthError(f"Garmin authentication failed: {exc}") from exc
+            logger.error("garmin_connection_error", email=self.email, error=error_msg)
             raise GarminSyncError(f"Garmin connection error: {exc}") from exc
 
     def get_activities(self, since: datetime) -> list[dict[str, Any]]:

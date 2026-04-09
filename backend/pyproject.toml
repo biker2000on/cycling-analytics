@@ -20,7 +20,7 @@ dependencies = [
     "aiofiles",
     "structlog",
     "geoalchemy2",
-    "garminconnect",
+    "garminconnect>=0.3.1",
     "cryptography",
     "httpx",
     "bcrypt",
