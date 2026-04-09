@@ -19,11 +19,16 @@ interface AuthState {
   setTokens: (accessToken: string, refreshToken: string) => void;
 }
 
+// Hydrate synchronously from localStorage before first render
+const initialToken = localStorage.getItem('access_token');
+const initialRefreshToken = localStorage.getItem('refresh_token');
+const initiallyAuthenticated = !!(initialToken && initialRefreshToken);
+
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  refreshToken: null,
+  token: initialToken,
+  refreshToken: initialRefreshToken,
   user: null,
-  isAuthenticated: false,
+  isAuthenticated: initiallyAuthenticated,
   isLoading: false,
   error: null,
 
