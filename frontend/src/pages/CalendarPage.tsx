@@ -9,89 +9,31 @@ import './CalendarPage.css';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
-  const { months, loadOlder, loadNewer, scrollToToday, activeMonth, setActiveMonth } = useInfiniteCalendar();
+  const { months, loadOlder, scrollToToday, activeMonth, setActiveMonth } = useInfiniteCalendar();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomSentinelRef = useRef<HTMLDivElement>(null);
-  const prevScrollHeightRef = useRef<number>(0);
-  const prevFirstMonthRef = useRef<string>('');
-  const initialScrollDone = useRef(false);
 
-  // Scroll to current month on initial load
+  // Infinite scroll: when bottom sentinel is visible, load older months
   useEffect(() => {
-    if (initialScrollDone.current) return;
-    const now = new Date();
-    const key = `month-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const el = document.getElementById(key);
-    if (el) {
-      el.scrollIntoView({ block: 'start' });
-      initialScrollDone.current = true;
-    }
-  }, [months]);
-
-  // IntersectionObserver for loading older months (top sentinel)
-  useEffect(() => {
-    const topSentinel = topSentinelRef.current;
+    const sentinel = bottomSentinelRef.current;
     const container = scrollContainerRef.current;
-    if (!topSentinel || !container) return;
+    if (!sentinel || !container) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          prevScrollHeightRef.current = container.scrollHeight;
-          prevFirstMonthRef.current = months.length > 0
-            ? `${months[0].year}-${months[0].month}`
-            : '';
           loadOlder();
         }
       },
-      { threshold: 0.1, root: container }
+      { threshold: 0.1, root: container, rootMargin: '200px' }
     );
 
-    observer.observe(topSentinel);
+    observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadOlder, months]);
+  }, [loadOlder]);
 
-  // Preserve scroll position when prepending older months
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || months.length === 0 || prevScrollHeightRef.current === 0) return;
-
-    const currentFirstMonth = `${months[0].year}-${months[0].month}`;
-    if (currentFirstMonth !== prevFirstMonthRef.current && prevFirstMonthRef.current !== '') {
-      // A new month was prepended - adjust scroll to keep position
-      requestAnimationFrame(() => {
-        const delta = container.scrollHeight - prevScrollHeightRef.current;
-        if (delta > 0) {
-          container.scrollTop += delta;
-        }
-        prevScrollHeightRef.current = 0;
-        prevFirstMonthRef.current = '';
-      });
-    }
-  }, [months]);
-
-  // IntersectionObserver for loading newer months (bottom sentinel)
-  useEffect(() => {
-    const bottomSentinel = bottomSentinelRef.current;
-    const container = scrollContainerRef.current;
-    if (!bottomSentinel || !container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadNewer();
-        }
-      },
-      { threshold: 0.1, root: container }
-    );
-
-    observer.observe(bottomSentinel);
-    return () => observer.disconnect();
-  }, [loadNewer]);
-
-  // IntersectionObserver for tracking active month (sticky headers)
+  // Track which month header is in view for the navigation title
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -137,9 +79,7 @@ export default function CalendarPage() {
         />
 
         <div className="calendar-scroll-container" ref={scrollContainerRef}>
-          {/* Top sentinel for loading older months */}
-          <div ref={topSentinelRef} className="calendar-sentinel" />
-
+          {/* Months rendered newest-first: scroll down = older */}
           {months.map((monthData) => {
             const monthKey = `${monthData.year}-${String(monthData.month).padStart(2, '0')}`;
             const monthId = `month-${monthKey}`;
@@ -169,7 +109,7 @@ export default function CalendarPage() {
             );
           })}
 
-          {/* Bottom sentinel for loading newer months */}
+          {/* Bottom sentinel: triggers loading older months */}
           <div ref={bottomSentinelRef} className="calendar-sentinel" />
         </div>
       </div>
