@@ -31,11 +31,12 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background: rgba(var(--color-bg-card-rgb, 255, 255, 255), 0.95);
+  background: var(--color-bg-card);
   backdrop-filter: blur(8px);
   padding: var(--space-sm) 0;
   font-size: 1.125rem;
   font-weight: 700;
+  color: var(--color-text);
   border-bottom: 2px solid var(--color-border);
   margin-bottom: var(--space-sm);
 }

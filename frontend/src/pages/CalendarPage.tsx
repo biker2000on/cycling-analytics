@@ -42,21 +42,32 @@ export default function CalendarPage() {
     };
   }, [loadOlder]);
 
-  // After months change (new month loaded), check if we still need more to fill viewport
+  // On initial load only: keep filling viewport until content is scrollable.
+  // Cap at 12 months to prevent runaway in tiny viewports.
+  const initialFillDone = useRef(false);
   useEffect(() => {
+    if (initialFillDone.current) return;
     const container = scrollContainerRef.current;
     if (!container) return;
+    if (months.length > 12) {
+      initialFillDone.current = true;
+      return;
+    }
+    // Check if the last month is still loading - wait for it
+    const last = months[months.length - 1];
+    if (last?.loading) return;
 
-    // Small delay to let the DOM update with the new month content
     const timer = setTimeout(() => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      if (scrollHeight - scrollTop - clientHeight < 400) {
+      const { scrollHeight, clientHeight } = container;
+      if (scrollHeight <= clientHeight + 100) {
         loadOlder();
+      } else {
+        initialFillDone.current = true;
       }
-    }, 100);
+    }, 150);
 
     return () => clearTimeout(timer);
-  }, [months.length, loadOlder]);
+  }, [months, loadOlder]);
 
   // Track which month header is in view for the navigation title.
   // Use a scroll listener to find the topmost visible month section.
