@@ -27,8 +27,10 @@ export default function CalendarPage() {
     }
 
     container.addEventListener('scroll', onScroll, { passive: true });
+    // Also check after each render (new month loaded may still not fill viewport)
+    onScroll();
     return () => container.removeEventListener('scroll', onScroll);
-  }, [loadOlder]);
+  }, [loadOlder, months]);
 
   // Track which month header is in view for the navigation title.
   // Use a scroll listener to find the topmost visible month section.
