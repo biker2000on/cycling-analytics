@@ -2,14 +2,13 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useInfiniteCalendar } from '../hooks/useInfiniteCalendar.ts';
-import CalendarNavigation from '../components/calendar/CalendarNavigation.tsx';
 import MonthView from '../components/calendar/MonthView.tsx';
 import MonthSkeleton from '../components/calendar/MonthSkeleton.tsx';
 import './CalendarPage.css';
 
 export default function CalendarPage() {
   const navigate = useNavigate();
-  const { months, loadOlder, scrollToToday, activeMonth, setActiveMonth } = useInfiniteCalendar();
+  const { months, loadOlder, scrollToToday } = useInfiniteCalendar();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -69,38 +68,6 @@ export default function CalendarPage() {
     return () => clearTimeout(timer);
   }, [months, loadOlder]);
 
-  // Track which month header is in view for the navigation title.
-  // Use a scroll listener to find the topmost visible month section.
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    function updateActiveMonth() {
-      const sections = container!.querySelectorAll('.calendar-month-section');
-      const containerTop = container!.getBoundingClientRect().top;
-
-      for (const section of sections) {
-        const rect = section.getBoundingClientRect();
-        // The first section whose bottom is below the container top
-        if (rect.bottom > containerTop + 50) {
-          const header = section.querySelector('.calendar-month-sticky-header') as HTMLElement;
-          if (header) {
-            const year = parseInt(header.dataset.year || '0', 10);
-            const month = parseInt(header.dataset.month || '0', 10);
-            if (year && month) {
-              setActiveMonth(year, month);
-            }
-          }
-          break;
-        }
-      }
-    }
-
-    updateActiveMonth();
-    container.addEventListener('scroll', updateActiveMonth, { passive: true });
-    return () => container.removeEventListener('scroll', updateActiveMonth);
-  }, [months, setActiveMonth]);
-
   const handleDayClick = useCallback((dateStr: string) => {
     navigate(`/activities?date=${dateStr}`);
   }, [navigate]);
@@ -112,12 +79,6 @@ export default function CalendarPage() {
       </div>
 
       <div className="card calendar-card">
-        <CalendarNavigation
-          year={activeMonth?.year || new Date().getFullYear()}
-          month={activeMonth?.month || new Date().getMonth() + 1}
-          onTodayClick={scrollToToday}
-        />
-
         <button className="calendar-today-fab" onClick={scrollToToday} title="Scroll to today">
           Today
         </button>
