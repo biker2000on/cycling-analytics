@@ -18,7 +18,7 @@ interface UseInfiniteCalendarReturn {
   setActiveMonth: (year: number, month: number) => void;
 }
 
-const MAX_MONTHS = 24;
+const MAX_MONTHS = 120; // 10 years
 const INITIAL_MONTHS = 3;
 
 function getMonthKey(year: number, month: number): string {

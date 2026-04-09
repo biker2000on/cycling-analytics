@@ -107,6 +107,10 @@ export default function CalendarPage() {
           onTodayClick={scrollToToday}
         />
 
+        <div className="calendar-scroll-wrapper">
+          <button className="calendar-today-fab" onClick={scrollToToday} title="Scroll to today">
+            Today
+          </button>
         <div className="calendar-scroll-container" ref={scrollContainerRef}>
           {/* Months rendered newest-first: scroll down = older */}
           {months.map((monthData) => {
@@ -138,6 +142,7 @@ export default function CalendarPage() {
             );
           })}
 
+        </div>
         </div>
       </div>
     </div>
