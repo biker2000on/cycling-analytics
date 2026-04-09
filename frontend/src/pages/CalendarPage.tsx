@@ -12,25 +12,22 @@ export default function CalendarPage() {
   const { months, loadOlder, scrollToToday, activeMonth, setActiveMonth } = useInfiniteCalendar();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
-  // Infinite scroll: when bottom sentinel is visible, load older months
+  // Infinite scroll: load older months when near the bottom
   useEffect(() => {
-    const sentinel = bottomSentinelRef.current;
     const container = scrollContainerRef.current;
-    if (!sentinel || !container) return;
+    if (!container) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadOlder();
-        }
-      },
-      { threshold: 0.1, root: container, rootMargin: '200px' }
-    );
+    function onScroll() {
+      const { scrollTop, scrollHeight, clientHeight } = container!;
+      // Load more when within 400px of the bottom
+      if (scrollHeight - scrollTop - clientHeight < 400) {
+        loadOlder();
+      }
+    }
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
   }, [loadOlder]);
 
   // Track which month header is in view for the navigation title.
@@ -113,8 +110,6 @@ export default function CalendarPage() {
             );
           })}
 
-          {/* Bottom sentinel: triggers loading older months */}
-          <div ref={bottomSentinelRef} className="calendar-sentinel" />
         </div>
       </div>
     </div>

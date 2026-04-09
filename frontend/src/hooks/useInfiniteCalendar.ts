@@ -68,13 +68,12 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
     setActiveMonthState({ year, month });
   }, []);
 
-  const loadingRef = useRef(new Set<string>());
-  const pendingMonths = useRef(new Set<string>());
+  const fetchingRef = useRef(new Set<string>());
 
   const fetchMonth = useCallback(async (year: number, month: number) => {
     const key = getMonthKey(year, month);
-    if (loadingRef.current.has(key)) return;
-    loadingRef.current.add(key);
+    if (fetchingRef.current.has(key)) return;
+    fetchingRef.current.add(key);
 
     try {
       const data = await getCalendarData(year, month);
@@ -97,7 +96,7 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
         )
       );
     } finally {
-      loadingRef.current.delete(key);
+      fetchingRef.current.delete(key);
     }
   }, []);
 
@@ -106,23 +105,26 @@ export function useInfiniteCalendar(): UseInfiniteCalendarReturn {
     months.forEach((m) => {
       if (m.loading && m.data === null && m.error === null) {
         fetchMonth(m.year, m.month);
-        pendingMonths.current.delete(getMonthKey(m.year, m.month));
       }
     });
   }, [months, fetchMonth]);
 
-  // Scrolling down = loading older months (appended to end of array)
+  // Scrolling down = loading older months (appended to end of array).
+  // Only load one month at a time - wait until the last one finishes loading.
   const loadOlder = useCallback(() => {
     setMonths((prev) => {
       if (prev.length === 0) return prev;
 
-      // Oldest is the last item in the array
-      const oldest = prev[prev.length - 1];
-      const olderMonth = decrementMonth(oldest.year, oldest.month);
-      const key = getMonthKey(olderMonth.year, olderMonth.month);
+      // Don't load more if the last month is still loading
+      const last = prev[prev.length - 1];
+      if (last.loading) return prev;
 
-      if (pendingMonths.current.has(key)) return prev;
-      pendingMonths.current.add(key);
+      const olderMonth = decrementMonth(last.year, last.month);
+
+      // Don't add if already in the list
+      if (prev.some((m) => m.year === olderMonth.year && m.month === olderMonth.month)) {
+        return prev;
+      }
 
       let updated = [
         ...prev,
