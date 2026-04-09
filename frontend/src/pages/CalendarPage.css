@@ -1,8 +1,8 @@
 .calendar-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
-  height: 100%;
+  /* Fill the main-content area exactly, prevent outer scroll */
+  height: calc(100vh - var(--topbar-height) - var(--space-xl) * 2);
   overflow: hidden;
 }
 
@@ -10,16 +10,16 @@
   padding: var(--space-md) var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
   flex: 1;
+  min-height: 0; /* allow flex child to shrink below content size */
   overflow: hidden;
   position: relative;
 }
 
 .calendar-scroll-container {
-  height: 100%;
+  flex: 1;
+  min-height: 0; /* critical: allows flex child to scroll */
   overflow-y: auto;
-  position: relative;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -61,9 +61,4 @@
 .calendar-today-fab:hover {
   background: var(--color-primary-dark, #2563eb);
   box-shadow: var(--shadow-lg);
-}
-
-.calendar-sentinel {
-  height: 1px;
-  pointer-events: none;
 }
